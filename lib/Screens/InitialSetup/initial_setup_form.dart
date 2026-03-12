@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:fitness/standardData.dart';
 import 'package:fitness/util.dart';
@@ -66,19 +68,6 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
       String weight = _controllers['Weight']!.text;
       String targetWeight = _controllers['Target Weight']!.text;
       String? targetBodyType = _selectedOptions['Target Body Type'];
-      final encUser = await storage.read(key: "user");
-      final user = jsonDecode(encUser!);
-
-      if (user == null) {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Util.showAlertBox(context, "Error! Try to Login again");
-          },
-        );
-        return;
-      }
 
       if (!mounted) return;
       showDialog(
@@ -88,60 +77,42 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
         },
       );
 
-      final url = Uri.parse('${StandardData.baseUrl}/api/initial-setup');
+      final id = FirebaseAuth.instance.currentUser?.uid;
 
-      final res = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      if (gender == null || targetBodyType == null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Select both gender and body type!"),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      try {
+        await FirebaseFirestore.instance.collection("users").doc(id).update({
+          'alreadySetup': true,
           'age': age,
           'gender': gender,
           'height': height,
           'weight': weight,
           'goalWeight': targetWeight,
           'targetBody': targetBodyType,
-          'username': user['userDTO']['username'],
-        }),
-      );
+        });
 
-      final Map<String, dynamic> response = jsonDecode(res.body);
-      if (res.statusCode == 200 && response['response'] == 'valid') {
-        if (!mounted) return;
         Navigator.pop(context);
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => HomePage()),
           (route) => false,
         );
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Util.showAlertBox(context, "Welcome User!");
-          },
-        );
-      } else {
-        if (!mounted) return;
+      } catch (e) {
         Navigator.pop(context);
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Util.showAlertBox(
-              context,
-              "Internal Server Error! Try again later.",
-            );
-          },
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return Util.showAlertBox(
-            context,
-            "Please fill all the required fields!",
-          );
-        },
-      );
     }
   }
 

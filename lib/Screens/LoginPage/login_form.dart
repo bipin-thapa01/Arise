@@ -1,12 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/ForgotPasswordPage/forgot_password.dart';
 import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:fitness/Screens/InitialSetup/initial_setup.dart';
 import 'package:fitness/Screens/SignupPage/signup_page.dart';
 import 'package:fitness/standardData.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -62,58 +60,43 @@ class _LoginFormState extends State<LoginForm> {
       context: context,
       builder: (context) => Center(child: CircularProgressIndicator()),
     );
-
     final email = _controllers['Email Address']!.text;
     final password = _controllers['Password']!.text;
-    final url = Uri.parse('${StandardData.baseUrl}/api/signin');
+
     try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'email': email,
-          'password': password,
-        },
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      final Map<String, dynamic> res = jsonDecode(response.body);
+      await storage.write(key: "email", value: email);
 
-      if (response.statusCode == 200 && res['response'] != "invalid") {
-        await storage.write(key: "email", value: email);
+      final id = FirebaseAuth.instance.currentUser?.uid;
+      print(id);
 
-        storage.write(key: 'user', value: jsonEncode(res));
-
-        if (!mounted) return;
-        Navigator.pop(context);
-
-        if (res['userDTO']?['initialSetup'] == false) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => InitialSetup()),
-          );
-          return;
-        }
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => HomePage()),
-          (route) => false,
-        );
-      } else {
-        if (!mounted) return;
-        Navigator.pop(context);
-        showDialog(
-          context: context,
-          builder: (context) =>
-              AlertDialog(content: Text("Invalid Credentials")),
-        );
-      }
-    } on SocketException {
+      final userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(id)
+          .get();
+      bool alreadySetup = userDoc.data()?['alreadySetup'];
       Navigator.pop(context);
-      showDialog(
-        context: context,
-        builder: (context) =>
-            AlertDialog(content: Text("No internet or Server is offline!")),
+      if (!alreadySetup) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => InitialSetup()),
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+        (route) => false,
       );
+    } on FirebaseAuthException catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.code)));
     }
   }
 

@@ -1,10 +1,11 @@
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:fitness/Screens/HomePage/home_page.dart';
-import 'package:fitness/Screens/NewUserLanding/new_user_landing_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fitness/firebase_notification.dart';
 
 void initOpenFoodFacts() {
   OpenFoodAPIConfiguration.userAgent = UserAgent(
@@ -15,8 +16,11 @@ void initOpenFoodFacts() {
   OpenFoodAPIConfiguration.globalCountry = OpenFoodFactsCountry.NEPAL;
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   initOpenFoodFacts();
+  await Firebase.initializeApp();
+  await FirebaseNotification().initFCM();
   runApp(MyApp());
 }
 
@@ -29,9 +33,9 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool isFetching = true;
+  bool isLogin = false;
   final storage = FlutterSecureStorage();
-  Map<String, dynamic>? data;
-  late String email;
+  late String? email;
 
   @override
   void initState() {
@@ -45,17 +49,16 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _fetch() async {
-    final encData = await storage.read(key: "user");
-    email = (await storage.read(key: "email"))!;
-    if (encData == null) {
+    fb.User? user = fb.FirebaseAuth.instance.currentUser;
+    email = (await storage.read(key: "email"));
+    if (user == null) {
       setState(() {
         isFetching = false;
-        data = null;
       });
     } else {
       setState(() {
         isFetching = false;
-        data = jsonDecode(encData);
+        isLogin = true;
       });
     }
   }
@@ -71,10 +74,8 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       home: isFetching
           ? Loading()
-          : data != null
+          : isLogin
           ? HomePage()
-          : email == ''
-          ? NewUserLandingPage()
           : LoginPage(),
     );
   }

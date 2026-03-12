@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -12,6 +13,13 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   final storage = FlutterSecureStorage();
 
+  Future<void> _logout() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseAuth.instance.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -20,6 +28,7 @@ class _SettingsState extends State<Settings> {
         SliverToBoxAdapter(
           child: ElevatedButton(
             onPressed: () {
+              _logout();
               storage.delete(key: 'user');
               Navigator.pushAndRemoveUntil(
                 context,
