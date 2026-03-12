@@ -1,15 +1,18 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
 import 'package:fitness/Screens/HomePage/home_page_skill.dart';
+import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/Screens/Progress/progress.dart';
-import 'package:fitness/Screens/Settings/settings.dart';
+import 'package:fitness/Screens/Settings/settings.dart' as st;
 import 'package:fitness/Screens/Workout/workout.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,12 +25,82 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final storage = FlutterSecureStorage();
   Map<String, dynamic>? data;
-  Map<String, dynamic>? dailyDetails;
+  Map<String, dynamic> dailyDetails = {
+    "consumed": 0,
+    "expend": 0,
+    "water": 0,
+    "steps": 0,
+  };
+  List<Map<String, dynamic>> habits = [];
 
   @override
   void initState() {
     super.initState();
     _fetch();
+  }
+
+  Future<void> _checkDetails(final id) async {
+    try {
+      //for fetching daily details
+      String today = DateTime.now().toIso8601String().split("T")[0];
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(id)
+          .collection("dailyDetails")
+          .doc(today)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          dailyDetails = doc.data() ?? dailyDetails;
+        });
+      } else {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(id)
+            .collection("dailyDetails")
+            .doc(today)
+            .set({
+              "consumed": 0,
+              "expend": 0,
+              "water": 0,
+              "steps": 0,
+              "date": today,
+              "createdAt": FieldValue.serverTimestamp(),
+            });
+        setState(() {
+          dailyDetails = {
+            "consumed": 0,
+            "expend": 0,
+            "water": 0,
+            "steps": 0,
+            "date": today,
+            "createdAt": FieldValue.serverTimestamp(),
+          };
+        });
+      }
+
+      //for fetching habits
+      final habitsDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(id)
+          .collection("habits")
+          .get();
+      if (habitsDoc.docs.isNotEmpty) {
+        setState(() {
+          habits = habitsDoc.docs
+              .map(
+                (doc) => {
+                  "name": doc.data()["name"],
+                  "currentStreak": doc.data()["currentStreak"],
+                },
+              )
+              .toList();
+        });
+      } else {}
+    } catch (e) {
+      StandardData.errorSnackbar(context);
+    }
   }
 
   Future<void> _fetch() async {
@@ -36,7 +109,6 @@ class _HomePageState extends State<HomePage> {
         'calorieExpend': 0.0,
         'calorieConsumed': 0.0,
         'date': DateTime.now().toIso8601String().split('T')[0],
-        'habits': [],
       };
     });
     final bool isAlreadySet = await storage.containsKey(key: "dailyDetails");
@@ -47,46 +119,48 @@ class _HomePageState extends State<HomePage> {
           'calorieExpend': 0.0,
           'calorieConsumed': 0.0,
           'date': DateTime.now().toIso8601String().split('T')[0],
-          'habits': [],
         }),
       );
     }
     String today = DateTime.now().toIso8601String().split('T')[0];
-    final encData = await storage.read(key: "user");
+
+    User? user = FirebaseAuth.instance.currentUser;
+
+    final id = user?.uid;
+
+    _checkDetails(id);
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(id)
+        .get();
+
+    if (user == null || !userDoc.exists) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+        (route) => false,
+      );
+    }
+
+    final initialDoc = await FirebaseFirestore.instance
+        .collection("initialData")
+        .doc(id)
+        .get();
+
+    if (!initialDoc.exists) {}
+
     setState(() {
-      data = jsonDecode(encData!);
+      data = {
+        "email": userDoc.data()!["email"],
+        "name": userDoc.data()!['displayName'],
+      };
+      dailyDetails = initialDoc.data() ?? dailyDetails;
     });
-    final email = await storage.read(key: "email");
-    try {
-      final url = Uri.parse('${StandardData.baseUrl}/api/initial-data');
-      final res = await http.get(
-        url,
-        headers: {'email': email ?? '', 'date': today},
-      );
-      setState(() {
-        dailyDetails = jsonDecode(res.body);
-      });
-      storage.write(
+    if (initialDoc.data() != null) {
+      await storage.write(
         key: "dailyDetails",
-        value: jsonEncode({
-          'calorieExpend': dailyDetails?['calorieExpend'],
-          'calorieConsumed': dailyDetails?['calorieConsumed'],
-          'date': dailyDetails?['date'],
-          'habits': dailyDetails?['habits'],
-        }),
-      );
-    } catch (e) {
-      final stored = await storage.read(key: "dailyDetails");
-      setState(() {
-        dailyDetails = jsonDecode(stored ?? '{}');
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No internet or Server is offline!"),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(bottom: 16),
-        ),
+        value: initialDoc.data().toString(),
       );
     }
   }
@@ -98,7 +172,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (data == null || dailyDetails == null) {
+    if (data == null) {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -173,16 +247,14 @@ class _HomePageState extends State<HomePage> {
           slivers: [
             HomePageAppbar(data: data),
             SliverToBoxAdapter(
-              child: HomePageCalorie(dailyDetails: dailyDetails!),
+              child: HomePageCalorie(dailyDetails: dailyDetails),
             ),
-            SliverToBoxAdapter(
-              child: HomePageSkill(data: dailyDetails?['habits'] ?? []),
-            ),
+            SliverToBoxAdapter(child: HomePageSkill(data: habits)),
           ],
         ),
         Workout(),
         Progress(),
-        Settings(),
+        st.Settings(),
       ][_selectedIndex],
     );
   }

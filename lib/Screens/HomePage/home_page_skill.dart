@@ -1,14 +1,12 @@
-import 'dart:convert';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/Habits/habits.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-
-List<Map<String, dynamic>> habits = [];
 
 class HomePageSkill extends StatefulWidget {
-  final List<dynamic> data;
+  final List<Map<String, dynamic>> data;
   const HomePageSkill({super.key, required this.data});
 
   @override
@@ -23,7 +21,6 @@ class _HomePageSkillState extends State<HomePageSkill> {
 
   @override
   Widget build(BuildContext context) {
-    habits = List<Map<String, dynamic>>.from(widget.data);
     return Container(
       margin: EdgeInsets.only(top: 10, left: 20, right: 20),
       padding: EdgeInsets.all(10),
@@ -52,7 +49,7 @@ class _HomePageSkillState extends State<HomePageSkill> {
                   return AddNewHabit(
                     onHabitAdded: (newHabit) {
                       setState(() {
-                        widget.data.add({"habit": newHabit});
+                        widget.data.add({"name": newHabit, "currentStreak": 0});
                       });
                     },
                   );
@@ -70,29 +67,35 @@ class _HomePageSkillState extends State<HomePageSkill> {
           Divider(color: Colors.grey[800], thickness: 1),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 10,
             children: [
               Text(
                 "Your current habits",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              habits.isNotEmpty
+              widget.data.isNotEmpty
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ListView.builder(
-                          padding: EdgeInsets.only(top: 5),
+                          padding: EdgeInsets.only(top: 5, bottom: 10),
                           shrinkWrap: true,
                           physics: NeverScrollableScrollPhysics(),
-                          itemCount: habits.length > 5 ? 5 : habits.length,
+                          itemCount: widget.data.length > 5
+                              ? 5
+                              : widget.data.length,
                           itemBuilder: (context, index) {
                             return Text(
-                              "${index + 1}. ${habits[index]['habit']}",
+                              "${index + 1}. ${widget.data[index]['name']}",
                             );
                           },
                         ),
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => Habits()),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: StandardData.primaryColor
                                 .withOpacity(0.5),
@@ -126,37 +129,35 @@ class _AddNewHabitState extends State<AddNewHabit> {
   final _key = GlobalKey<FormState>();
   final TextEditingController _habit = TextEditingController();
 
-  Future<void> _addHabit() async {
-    if (!_key.currentState!.validate()) return;
-    final String habit = _habit.text;
-    final encUser = await storage.read(key: "user");
-    final user = await jsonDecode(encUser!);
-    final id = user['userDTO']['id'];
-    final url = Uri.parse("${StandardData.baseUrl}/api/add-habit");
-    final res = await http.post(
-      url,
-      headers: {'content-type': 'application/json'},
-      body: jsonEncode({'habit': habit, 'userId': id}),
-    );
-    final decResponse = jsonDecode(res.body);
-    if (res.statusCode == 200 && decResponse['response'] == 'success') {
-      Navigator.pop(context);
-      if (widget.onHabitAdded != null) {
-        widget.onHabitAdded!(habit);
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("New Habit Successfully Added!"),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(bottom: 16),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    Future<void> addHabit() async {
+      if (!_key.currentState!.validate()) return;
+      final String habit = _habit.text;
+      if (habit.isNotEmpty) {
+        User? user = FirebaseAuth.instance.currentUser;
+        final String? id = user?.uid;
+        try {
+          await FirebaseFirestore.instance
+              .collection("users")
+              .doc(id)
+              .collection("habits")
+              .add({
+                "name": habit,
+                "createdAt": FieldValue.serverTimestamp(),
+                "currentStreak": 0,
+                "bestStreak": 0,
+              });
+          if (widget.onHabitAdded != null) {
+            widget.onHabitAdded?.call(habit);
+          }
+          Navigator.pop(context);
+        } catch (e) {
+          StandardData.errorSnackbar(context);
+        }
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.only(
         top: 10,
@@ -212,7 +213,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            _addHabit();
+                            addHabit();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: StandardData.primaryColor
@@ -221,7 +222,9 @@ class _AddNewHabitState extends State<AddNewHabit> {
                           child: Text("Save"),
                         ),
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.grey.withOpacity(0.2),
                           ),

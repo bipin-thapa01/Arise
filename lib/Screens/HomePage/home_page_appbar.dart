@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -19,32 +18,19 @@ class _HomePageAppbarState extends State<HomePageAppbar> {
       title: Row(
         spacing: 10,
         children: [
-          widget.data == null
-              ? Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    image: DecorationImage(
-                      image: AssetImage('assets/user.png'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
-              : Container(
-                  width: 40,
-                  height: 40,
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Image.network(
-                    widget.data?['userDTO']?['imgurl'],
-                    fit: BoxFit.cover,
-                  ),
-                ),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(50),
+              image: DecorationImage(
+                image: AssetImage('assets/user.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
           Text(
-            "Welcome, ${widget.data?['userDTO']?['name']}",
+            "Welcome, ${widget.data?['name']}",
             style: TextStyle(fontSize: 18),
           ),
         ],

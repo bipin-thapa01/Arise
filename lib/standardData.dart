@@ -16,4 +16,10 @@ class StandardData {
   static const String homeIp = "192.168.1.67";
   static const String emulatorIp = "10.0.2.2";
   static const String baseUrl = "http://$homeIp:8080";
+
+  static void errorSnackbar(final context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Error Fetching Data!")));
+  }
 }

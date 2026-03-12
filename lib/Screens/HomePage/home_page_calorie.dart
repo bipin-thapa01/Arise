@@ -39,21 +39,20 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
       [
         Icon(Icons.restaurant_menu, color: StandardData.iconColor1),
         "Consumed",
-        widget.dailyDetails['calorieConsumed'].toString(),
+        widget.dailyDetails['consumed'].toString(),
       ],
       [
         Icon(Icons.local_fire_department, color: StandardData.iconColor2),
         "Burned",
-        widget.dailyDetails['calorieExpend'].toString(),
+        widget.dailyDetails['expend'].toString(),
       ],
       [Icon(Icons.flag, color: Colors.green), "Daily Goal", "2000"],
     ];
     double consumed =
-        double.tryParse(widget.dailyDetails['calorieConsumed'].toString()) ??
-        0.0;
+        double.tryParse(widget.dailyDetails['consumed'].toString()) ?? 0.0;
 
     double burned =
-        double.tryParse(widget.dailyDetails['calorieExpend'].toString()) ?? 0.0;
+        double.tryParse(widget.dailyDetails['expend'].toString()) ?? 0.0;
 
     double percentRatio = (consumed - burned) / 2000;
 
