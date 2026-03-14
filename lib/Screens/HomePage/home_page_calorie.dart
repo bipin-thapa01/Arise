@@ -68,7 +68,7 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
       progressColor = Colors.white;
     }
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 5, left: 20, right: 20),
+      padding: const EdgeInsets.only(top: 10, bottom: 5, left: 10, right: 10),
       child: Column(
         spacing: 10,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +78,6 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           Container(
-            width: MediaQuery.of(context).size.width * 0.9,
             decoration: BoxDecoration(
               color: StandardData.backgroundColor1,
               borderRadius: BorderRadius.circular(20),

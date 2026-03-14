@@ -5,7 +5,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
+import 'package:fitness/Screens/HomePage/home_page_log.dart';
 import 'package:fitness/Screens/HomePage/home_page_skill.dart';
+import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/Screens/Progress/progress.dart';
 import 'package:fitness/Screens/Settings/settings.dart' as st;
@@ -249,6 +251,8 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: HomePageCalorie(dailyDetails: dailyDetails),
             ),
+            SliverToBoxAdapter(child: HomePageLog()),
+            SliverToBoxAdapter(child: HomePageWorkout()),
             SliverToBoxAdapter(child: HomePageSkill(data: habits)),
           ],
         ),

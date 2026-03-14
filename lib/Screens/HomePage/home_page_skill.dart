@@ -22,7 +22,7 @@ class _HomePageSkillState extends State<HomePageSkill> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 10, left: 20, right: 20),
+      margin: EdgeInsets.only(top: 10, left: 10, right: 10),
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: StandardData.backgroundColor1,
@@ -73,36 +73,64 @@ class _HomePageSkillState extends State<HomePageSkill> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               widget.data.isNotEmpty
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListView.builder(
-                          padding: EdgeInsets.only(top: 5, bottom: 10),
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: widget.data.length > 5
-                              ? 5
-                              : widget.data.length,
-                          itemBuilder: (context, index) {
-                            return Text(
-                              "${index + 1}. ${widget.data[index]['name']}",
-                            );
-                          },
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => Habits()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: StandardData.primaryColor
-                                .withOpacity(0.5),
-                          ),
-                          child: Text("View all"),
-                        ),
-                      ],
+                  ? StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection("users")
+                          .doc(FirebaseAuth.instance.currentUser!.uid)
+                          .collection("habits")
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Text(
+                            "Fetching...",
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Text(
+                            "Empty Habits List!",
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          );
+                        }
+
+                        final habits = snapshot.data!.docs;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListView.builder(
+                              padding: EdgeInsets.only(top: 5, bottom: 10),
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: habits.length > 5 ? 5 : habits.length,
+                              itemBuilder: (context, index) {
+                                final habit =
+                                    habits[index].data()
+                                        as Map<String, dynamic>;
+
+                                return Text("${index + 1}. ${habit["name"]}");
+                              },
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Habits(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: StandardData.primaryColor
+                                    .withOpacity(0.5),
+                              ),
+                              child: Text("View all"),
+                            ),
+                          ],
+                        );
+                      },
                     )
                   : Text(
                       "Empty Habits List!",
