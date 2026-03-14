@@ -14,13 +14,16 @@ class _HomePageAppbarState extends State<HomePageAppbar> {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
+      pinned: true,
+      scrolledUnderElevation: 0,
+      backgroundColor: Theme.of(context).primaryColor,
       automaticallyImplyLeading: false,
       title: Row(
         spacing: 10,
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(50),
               image: DecorationImage(

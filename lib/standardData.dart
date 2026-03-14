@@ -7,6 +7,7 @@ class StandardData {
   //colors part
   static const Color primaryColor = Colors.deepPurpleAccent;
   static const Color backgroundColor1 = Color(0xFF292929);
+  static const Color backgroundColor2 = Color(0xFF333333);
   static const Color mainColor = Color(0xFF151515);
   static const Color buttonColor1 = Color(0xFF333333);
   static const Color iconColor1 = Colors.blueAccent;
@@ -20,6 +21,6 @@ class StandardData {
   static void errorSnackbar(final context) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("Error Fetching Data!")));
+    ).showSnackBar(SnackBar(content: Text("Error in execution! Try again")));
   }
 }

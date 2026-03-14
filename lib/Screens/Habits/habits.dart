@@ -10,9 +10,10 @@ class Habits extends StatefulWidget {
   State<Habits> createState() => _HabitsState();
 }
 
-class _HabitsState extends State<Habits> {
-  final List<Map<String, dynamic>> habits = [];
+final List<Map<String, dynamic>> habits = [];
+String updatedText = '';
 
+class _HabitsState extends State<Habits> {
   @override
   void initState() {
     super.initState();
@@ -31,6 +32,7 @@ class _HabitsState extends State<Habits> {
         .get();
     if (habitsDoc.docs.isNotEmpty) {
       setState(() {
+        habits.clear();
         habits.addAll(
           habitsDoc.docs.map((doc) {
             return {
@@ -43,6 +45,26 @@ class _HabitsState extends State<Habits> {
           }),
         );
       });
+    }
+  }
+
+  Future<void> _deleteHabit(final id) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .collection("habits")
+          .doc(id)
+          .delete();
+      setState(() {
+        habits.removeWhere((item) => item['id'] == id);
+      });
+      Navigator.pop(context);
+    } catch (e) {
+      StandardData.errorSnackbar(context);
     }
   }
 
@@ -129,6 +151,12 @@ class _HabitsState extends State<Habits> {
                                             builder: (context) {
                                               return EditHabit(
                                                 habit: habits[index],
+                                                updateHabit: () {
+                                                  setState(() {
+                                                    habits[index]["name"] =
+                                                        updatedText;
+                                                  });
+                                                },
                                               );
                                             },
                                           );
@@ -136,6 +164,59 @@ class _HabitsState extends State<Habits> {
                                         icon: Icon(Icons.edit),
                                         iconSize: 16,
                                         padding: EdgeInsets.all(0),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return AlertDialog(
+                                                title: Text(
+                                                  "Are you sure you want to delete the habit?",
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                content: Row(
+                                                  spacing: 20,
+                                                  children: [
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        _deleteHabit(
+                                                          habits[index]["id"],
+                                                        );
+                                                      },
+                                                      style:
+                                                          TextButton.styleFrom(
+                                                            backgroundColor:
+                                                                StandardData
+                                                                    .primaryColor
+                                                                    .withAlpha(
+                                                                      200,
+                                                                    ),
+                                                          ),
+                                                      child: Text("Yes"),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                      style: TextButton.styleFrom(
+                                                        backgroundColor:
+                                                            StandardData
+                                                                .buttonColor1,
+                                                      ),
+                                                      child: Text("No"),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                        iconSize: 16,
+                                        padding: EdgeInsets.all(0),
+                                        icon: Icon(Icons.delete),
                                       ),
                                     ],
                                   ),
@@ -178,7 +259,8 @@ class _HabitsState extends State<Habits> {
 
 class EditHabit extends StatefulWidget {
   final Map<String, dynamic> habit;
-  const EditHabit({super.key, required this.habit});
+  final updateHabit;
+  const EditHabit({super.key, required this.habit, required this.updateHabit});
 
   @override
   State<EditHabit> createState() => _EditHabitState();
@@ -228,17 +310,15 @@ class _EditHabitState extends State<EditHabit> {
           .collection("habits")
           .doc(id)
           .update({"name": changedHabit});
-
+      updatedText = changedHabit;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Habit successfully updated"),
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Habits()),
-      );
+      widget.updateHabit();
+      Navigator.pop(context);
     } catch (e) {
       StandardData.errorSnackbar(context);
     }
