@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
@@ -178,27 +177,33 @@ class _HomePageState extends State<HomePage> {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom != 0;
+
     return Scaffold(
-      floatingActionButton: IconButton(
-        iconSize: 30,
-        onPressed: () {
-          showModalBottomSheet(
-            isScrollControlled: true,
-            context: context,
-            builder: (context) {
-              return DraggableScrollableSheet(
-                initialChildSize: 0.35,
-                expand: false,
-                builder: (context, scrollController) {
-                  return HomePageQRPopup();
-                },
-              );
-            },
-          );
-        },
-        icon: Icon(Icons.qr_code_scanner),
-        style: IconButton.styleFrom(backgroundColor: StandardData.primaryColor),
-      ),
+      floatingActionButton: keyboardOpen
+          ? null
+          : IconButton(
+              iconSize: 30,
+              onPressed: () {
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  builder: (context) {
+                    return DraggableScrollableSheet(
+                      initialChildSize: 0.35,
+                      expand: false,
+                      builder: (context, scrollController) {
+                        return HomePageQRPopup();
+                      },
+                    );
+                  },
+                );
+              },
+              icon: Icon(Icons.qr_code_scanner),
+              style: IconButton.styleFrom(
+                backgroundColor: StandardData.primaryColor,
+              ),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: NavigationBar(
         backgroundColor: Theme.of(context).primaryColor,
