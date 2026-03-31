@@ -178,6 +178,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                 "frequency": selectedValue,
                 "currentStreak": 0,
                 "bestStreak": 0,
+                "lastCompleted": null,
               });
           if (widget.onHabitAdded != null) {
             widget.onHabitAdded?.call(habit);
