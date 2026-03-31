@@ -103,11 +103,7 @@ class _HabitsState extends State<Habits> {
                 )
               : SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(
-                      top: 10,
-                      left: 20,
-                      right: 10,
-                    ),
+                    padding: const EdgeInsets.only(left: 10, right: 10),
                     child: Column(
                       children: [
                         Text("Your habits"),

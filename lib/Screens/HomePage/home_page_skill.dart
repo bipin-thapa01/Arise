@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/Habits/habits.dart';
 import 'package:fitness/standardData.dart';
@@ -156,6 +157,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
   final storage = FlutterSecureStorage();
   final _key = GlobalKey<FormState>();
   final TextEditingController _habit = TextEditingController();
+  String? selectedValue;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +175,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
               .add({
                 "name": habit,
                 "createdAt": FieldValue.serverTimestamp(),
+                "frequency": selectedValue,
                 "currentStreak": 0,
                 "bestStreak": 0,
               });
@@ -222,11 +225,11 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       fillColor: Theme.of(context).primaryColor,
                       hint: Text("New Habit"),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: StandardData.primaryColor,
                           width: 1,
@@ -234,8 +237,50 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 10),
+                  DropdownButtonFormField2<String>(
+                    isExpanded: true,
+                    hint: Text(selectedValue ?? "Select Frequency"),
+                    items: ['Daily', 'Weekly', 'Monthly']
+                        .map(
+                          (item) => DropdownItem<String>(
+                            value: item,
+                            height: 40,
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedValue = value!;
+                      });
+                    },
+                    decoration: InputDecoration(border: InputBorder.none),
+                    buttonStyleData: FormFieldButtonStyleData(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      maxHeight: 250,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 10),
                     child: Row(
                       spacing: 20,
                       children: [
