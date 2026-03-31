@@ -8,7 +8,8 @@ import 'package:fitness/Screens/HomePage/home_page_log.dart';
 import 'package:fitness/Screens/HomePage/home_page_skill.dart';
 import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
-import 'package:fitness/Screens/Progress/progress.dart';
+import 'package:fitness/Screens/Progress/calendar.dart';
+
 import 'package:fitness/Screens/Settings/settings.dart' as st;
 import 'package:fitness/Screens/Workout/workout.dart';
 import 'package:fitness/standardData.dart';
@@ -237,7 +238,7 @@ class _HomePageState extends State<HomePage> {
               Icons.calendar_month,
               color: StandardData.primaryColor,
             ),
-            label: "Progress",
+            label: "Calendar",
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
@@ -262,7 +263,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         Workout(),
-        Progress(),
+        Calendar(),
         st.Settings(),
       ][_selectedIndex],
     );

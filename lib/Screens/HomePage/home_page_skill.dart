@@ -157,7 +157,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
   final storage = FlutterSecureStorage();
   final _key = GlobalKey<FormState>();
   final TextEditingController _habit = TextEditingController();
-  String? selectedValue;
+  String selectedValue = "Daily";
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +240,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                   SizedBox(height: 10),
                   DropdownButtonFormField2<String>(
                     isExpanded: true,
-                    hint: Text(selectedValue ?? "Select Frequency"),
+                    hint: Text(selectedValue),
                     items: ['Daily', 'Weekly', 'Monthly']
                         .map(
                           (item) => DropdownItem<String>(
