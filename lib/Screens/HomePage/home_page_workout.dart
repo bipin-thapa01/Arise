@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/CustomWorkoutPlan/custom_workout_plan.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -11,7 +12,8 @@ class HomePageWorkout extends StatefulWidget {
 }
 
 class _HomePageWorkoutState extends State<HomePageWorkout> {
-  final List<Map<String, dynamic>> workoutPlans = [];
+  bool isEmpty = true;
+  List<Map<String, dynamic>> workoutPlans = [];
   @override
   void initState() {
     super.initState();
@@ -28,7 +30,17 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
           .doc(uid)
           .collection("workoutPlans")
           .get();
-    } catch (e) {}
+      if (workoutDoc.size != 0) {
+        isEmpty = false;
+        setState(() {
+          workoutPlans = workoutDoc.docs.map((workout) {
+            return workout.data();
+          }).toList();
+        });
+      }
+    } catch (e) {
+      StandardData.errorSnackbar(context);
+    }
   }
 
   @override
@@ -47,13 +59,34 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             "Workout Plans",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          Text(
+            "Create custom workout plans!",
+            style: TextStyle(color: Colors.grey, fontSize: 10),
+          ),
+          SizedBox(height: 6),
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CustomWorkoutPlan()),
+              );
+            },
             style: TextButton.styleFrom(
               backgroundColor: StandardData.primaryColor.withAlpha(100),
             ),
             child: Text("Create Workout Plan"),
           ),
+          Divider(),
+          Text(
+            "Your current workout plans",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          isEmpty
+              ? Text(
+                  "No workout plans found",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                )
+              : Text("Hello"),
         ],
       ),
     );

@@ -207,6 +207,7 @@ class _HomePageState extends State<HomePage> {
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: NavigationBar(
+        height: 60,
         backgroundColor: Theme.of(context).primaryColor,
         indicatorColor: Theme.of(context).primaryColor,
         selectedIndex: _selectedIndex,
