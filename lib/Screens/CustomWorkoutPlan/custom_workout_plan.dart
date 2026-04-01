@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +9,11 @@ List<Map<String, dynamic>> customWorkouts = [];
 
 void initCustomWorkouts(int numberOfDays) {
   customWorkouts = List.generate(numberOfDays, (index) {
-    return {"day": index + 1, "exercises": <Map<String, dynamic>>[]};
+    return {
+      "day": index + 1,
+      "dayName": "",
+      "exercises": <Map<String, dynamic>>[],
+    };
   });
 }
 
@@ -36,12 +42,62 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
     }
   }
 
+  Future<void> saveWorkout() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_controllers[content[0]["name"]]!.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Workout Name cannot be empty!")));
+      return;
+    }
+    if (!isDaysDecided) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Number of days cannot be empty!")),
+      );
+      return;
+    }
+    for (var day in customWorkouts) {
+      if (day["dayName"] == null || (day["dayName"] as String).isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Day Name cannot be empty!")));
+        return;
+      }
+      if (day["exercises"] == null || (day["exercises"] as List).isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Exercise cannot be empty!")));
+        return;
+      }
+    }
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user!.uid)
+          .collection("customWorkouts")
+          .add({
+            "name": _controllers[content[0]["name"]]!.text,
+            "frequency": _controllers[content[1]["name"]]!.text,
+            "workouts": customWorkouts,
+          });
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Successfully Saved!")));
+    } catch (e) {
+      StandardData.errorSnackbar(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Custom Workout Plan"),
         titleSpacing: 0,
+        backgroundColor: Theme.of(context).primaryColor,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);
@@ -130,12 +186,52 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text("For Day $i"),
-                            if (customWorkouts[i - 1]["exercises"].isNotEmpty)
-                              ...customWorkouts[i - 1]["exercises"].map((
-                                exercise,
-                              ) {
-                                return Text("- ${exercise["name"]}");
-                              }),
+                            SizedBox(height: 8),
+                            DropdownButtonFormField2(
+                              decoration: InputDecoration(
+                                hintText: customWorkouts[i - 1]["dayName"],
+                                filled: true,
+                                fillColor: StandardData.backgroundColor1,
+                                labelText: "Select Day",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: EdgeInsets.only(left: 10),
+                              ),
+                              isExpanded: true,
+                              items:
+                                  [
+                                    "Sun",
+                                    "Mon",
+                                    "Tue",
+                                    "Wed",
+                                    "Thu",
+                                    "Fri",
+                                    "Sat",
+                                  ].map((day) {
+                                    bool isDisabled = customWorkouts
+                                        .asMap()
+                                        .entries
+                                        .any(
+                                          (entry) =>
+                                              entry.key != i - 1 &&
+                                              entry.value["dayName"] == day,
+                                        );
+                                    return DropdownItem<String>(
+                                      value: day,
+                                      enabled: !isDisabled,
+                                      child: Text(
+                                        "$day ${isDisabled ? " (Already Taken)" : ""}",
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  customWorkouts[i - 1]["dayName"] = value!;
+                                });
+                              },
+                            ),
                             TextButton(
                               onPressed: () {
                                 showModalBottomSheet(
@@ -156,9 +252,45 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                               ),
                               child: Text("Add Exercise"),
                             ),
+                            if (customWorkouts[i - 1]["exercises"].isNotEmpty)
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                width: MediaQuery.of(context).size.width * 0.9,
+                                decoration: BoxDecoration(
+                                  color: StandardData.backgroundColor1,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Selected Exercises"),
+                                    ...customWorkouts[i - 1]["exercises"].map((
+                                      exercise,
+                                    ) {
+                                      return Text(
+                                        "- ${exercise["name"]}",
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+                            Divider(),
                           ],
                         ),
                       ),
+                  TextButton(
+                    onPressed: () {
+                      saveWorkout();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: StandardData.primaryColor.withAlpha(100),
+                    ),
+                    child: Text("Save Workout!"),
+                  ),
                 ],
               ),
             ),
@@ -300,7 +432,7 @@ class _AddExerciseState extends State<AddExercise> {
                                     if (customWorkouts[widget.day -
                                                 1]["exercises"]
                                             .length >
-                                        15) {
+                                        14) {
                                       Navigator.pop(context);
                                       ScaffoldMessenger.of(
                                         context,
