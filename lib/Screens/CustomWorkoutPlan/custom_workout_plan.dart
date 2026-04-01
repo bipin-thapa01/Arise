@@ -1,6 +1,15 @@
-import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+List<Map<String, dynamic>> customWorkouts = [];
+
+void initCustomWorkouts(int numberOfDays) {
+  customWorkouts = List.generate(numberOfDays, (index) {
+    return {"day": index + 1, "exercises": <Map<String, dynamic>>[]};
+  });
+}
 
 class CustomWorkoutPlan extends StatefulWidget {
   const CustomWorkoutPlan({super.key});
@@ -10,10 +19,22 @@ class CustomWorkoutPlan extends StatefulWidget {
 }
 
 class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
+  final _formKey = GlobalKey<FormState>();
+  bool isDaysDecided = false;
+  int numberOfDays = 0;
+  final Map<String, TextEditingController> _controllers = {};
   final List<Map<String, dynamic>> content = [
     {"name": "Workout Plan Name", "type": "text"},
     {"name": "Frequency (eg. 6 days / week )", "type": "number"},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    for (var i in content) {
+      _controllers[i["name"]] = TextEditingController();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,14 +62,42 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
           ),
           SliverToBoxAdapter(
             child: Form(
+              key: _formKey,
               child: Column(
                 children: [
                   SizedBox(height: 20),
                   ...content.map((data) {
                     return Container(
-                      width: MediaQuery.of(context).size.width * 0.9,
+                      width: MediaQuery.of(context).size.width * 0.95,
                       margin: EdgeInsets.only(bottom: 15),
                       child: TextFormField(
+                        keyboardType: data["type"] == "number"
+                            ? TextInputType.number
+                            : TextInputType.text,
+                        inputFormatters: data["type"] == "number"
+                            ? [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[1-7]'),
+                                ),
+                              ]
+                            : null,
+                        controller: _controllers[data["name"]],
+                        onChanged: (value) {
+                          setState(() {
+                            if (value.isEmpty) {
+                              isDaysDecided = false;
+                              numberOfDays = 0;
+                              initCustomWorkouts(0);
+                              return;
+                            }
+                            if (data["type"] == "number") {
+                              isDaysDecided = true;
+                              numberOfDays = int.parse(value);
+                              initCustomWorkouts(numberOfDays);
+                              print(customWorkouts);
+                            }
+                          });
+                        },
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: StandardData.buttonColor1,
@@ -68,11 +117,220 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                       ),
                     );
                   }),
+                  if (isDaysDecided)
+                    for (int i = 1; i <= numberOfDays; i++)
+                      Container(
+                        width: MediaQuery.of(context).size.width,
+                        margin: EdgeInsets.only(
+                          bottom: 10,
+                          left: 10,
+                          right: 10,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("For Day $i"),
+                            if (customWorkouts[i - 1]["exercises"].isNotEmpty)
+                              ...customWorkouts[i - 1]["exercises"].map((
+                                exercise,
+                              ) {
+                                return Text("- ${exercise["name"]}");
+                              }),
+                            TextButton(
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (builder) {
+                                    return AddExercise(
+                                      day: i,
+                                      onExerciseAdded: () {
+                                        setState(() {});
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                backgroundColor: StandardData.primaryColor
+                                    .withAlpha(100),
+                              ),
+                              child: Text("Add Exercise"),
+                            ),
+                          ],
+                        ),
+                      ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AddExercise extends StatefulWidget {
+  final int day;
+  final VoidCallback onExerciseAdded;
+  const AddExercise({
+    super.key,
+    required this.day,
+    required this.onExerciseAdded,
+  });
+
+  @override
+  State<AddExercise> createState() => _AddExerciseState();
+}
+
+class _AddExerciseState extends State<AddExercise> {
+  List<Map<String, dynamic>> workouts = [];
+  List<Map<String, dynamic>> filteredWorkouts = [];
+
+  Future<void> _fetchWorkout() async {
+    final workoutDocs = await FirebaseFirestore.instance
+        .collection("exercises")
+        .get();
+    setState(() {
+      workouts = workoutDocs.docs.map((doc) {
+        return doc.data();
+      }).toList();
+      filteredWorkouts = workouts;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWorkout();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 10,
+        right: 10,
+        top: 10,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 30,
+              height: 5,
+              decoration: BoxDecoration(
+                color: StandardData.primaryColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            SizedBox(height: 20),
+            TextFormField(
+              onChanged: (value) {
+                setState(() {
+                  if (value.isEmpty) {
+                    filteredWorkouts = workouts;
+                  } else {
+                    filteredWorkouts = workouts.where((workout) {
+                      return workout["name"].toLowerCase().contains(
+                        value.toLowerCase(),
+                      );
+                    }).toList();
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: StandardData.backgroundColor1,
+                hintText: "Search for Workout",
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: StandardData.primaryColor,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: filteredWorkouts.isEmpty
+                  ? Center(child: Text("Fetching Workout"))
+                  : ListView.builder(
+                      itemCount: filteredWorkouts.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(filteredWorkouts[index]["name"]),
+                          trailing:
+                              (customWorkouts.length >= widget.day &&
+                                  (customWorkouts[widget.day - 1]["exercises"]
+                                          as List)
+                                      .any(
+                                        (w) =>
+                                            w["name"] ==
+                                            filteredWorkouts[index]["name"],
+                                      ))
+                              ? TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      customWorkouts[widget.day -
+                                              1]["exercises"]
+                                          .removeWhere(
+                                            (w) =>
+                                                w["name"] ==
+                                                filteredWorkouts[index]["name"],
+                                          );
+                                    });
+                                    widget.onExerciseAdded();
+                                  },
+                                  child: Text("Remove"),
+                                )
+                              : TextButton(
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: StandardData.primaryColor
+                                        .withAlpha(100),
+                                  ),
+                                  onPressed: () {
+                                    if (customWorkouts[widget.day -
+                                                1]["exercises"]
+                                            .length >
+                                        15) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Only 15 workout per day is allowed!",
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    setState(() {
+                                      customWorkouts[widget.day -
+                                              1]["exercises"]
+                                          .add({
+                                            "name":
+                                                filteredWorkouts[index]["name"],
+                                          });
+                                    });
+                                    widget.onExerciseAdded();
+                                  },
+                                  child: Text("Add"),
+                                ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
