@@ -12,6 +12,7 @@ class HomePageWorkout extends StatefulWidget {
 }
 
 class _HomePageWorkoutState extends State<HomePageWorkout> {
+  int listCount = 0;
   bool isEmpty = true;
   List<Map<String, dynamic>> workoutPlans = [];
   @override
@@ -37,7 +38,6 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             return workout.data();
           }).toList();
         });
-        print(workoutPlans);
       }
     } catch (e) {
       StandardData.errorSnackbar(context);
@@ -82,38 +82,33 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             "Your current workout plans",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          Flexible(
-            child: workoutPlans.isEmpty
-                ? Center(
-                    child: Text(
-                      "No workout plans found",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: workoutPlans.length,
-                    itemBuilder: (context, index) {
-                      final plan = workoutPlans[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            plan["planName"] ?? "Unnamed Plan",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            "Days: ${plan["frequency"] ?? '-'}",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          onTap: () {},
-                        ),
-                      );
-                    },
+          workoutPlans.isEmpty
+              ? Center(
+                  child: Text(
+                    "No workout plans found",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-          ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 10),
+                    ...workoutPlans.map((workout) {
+                      listCount++;
+                      return Text("$listCount. ${workout["name"]}");
+                    }),
+                    TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.only(left: 25, right: 25),
+                        backgroundColor: StandardData.primaryColor.withAlpha(
+                          100,
+                        ),
+                      ),
+                      child: Text("View all"),
+                    ),
+                  ],
+                ),
         ],
       ),
     );

@@ -71,6 +71,7 @@ class _SignupPageState extends State<SignupPage> {
           "email": email,
           "alreadySetup": false,
           "createdAt": FieldValue.serverTimestamp(),
+          "activeWorkoutPlan": null,
         });
 
         if (!mounted) return;

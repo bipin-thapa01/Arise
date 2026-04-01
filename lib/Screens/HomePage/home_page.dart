@@ -5,6 +5,7 @@ import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
 import 'package:fitness/Screens/HomePage/home_page_log.dart';
+import 'package:fitness/Screens/HomePage/home_page_notification.dart';
 import 'package:fitness/Screens/HomePage/home_page_skill.dart';
 import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
@@ -258,6 +259,7 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: HomePageCalorie(dailyDetails: dailyDetails),
             ),
+            SliverToBoxAdapter(child: HomePageNotification()),
             SliverToBoxAdapter(child: HomePageLog()),
             SliverToBoxAdapter(child: HomePageWorkout()),
             SliverToBoxAdapter(child: HomePageSkill(data: habits)),
