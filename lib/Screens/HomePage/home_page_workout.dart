@@ -28,7 +28,7 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
       final workoutDoc = await FirebaseFirestore.instance
           .collection("users")
           .doc(uid)
-          .collection("workoutPlans")
+          .collection("customWorkouts")
           .get();
       if (workoutDoc.size != 0) {
         isEmpty = false;
@@ -37,6 +37,7 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             return workout.data();
           }).toList();
         });
+        print(workoutPlans);
       }
     } catch (e) {
       StandardData.errorSnackbar(context);
@@ -81,12 +82,38 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             "Your current workout plans",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          isEmpty
-              ? Text(
-                  "No workout plans found",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                )
-              : Text("Hello"),
+          Flexible(
+            child: workoutPlans.isEmpty
+                ? Center(
+                    child: Text(
+                      "No workout plans found",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: workoutPlans.length,
+                    itemBuilder: (context, index) {
+                      final plan = workoutPlans[index];
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            plan["planName"] ?? "Unnamed Plan",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            "Days: ${plan["frequency"] ?? '-'}",
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          onTap: () {},
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );
