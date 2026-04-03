@@ -16,6 +16,7 @@ import 'package:fitness/Screens/Workout/workout.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -176,7 +177,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (data == null) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        body: Center(
+          child: SpinKitThreeBounce(
+            color: StandardData.primaryColor,
+            size: 30.0,
+          ),
+        ),
+      );
     }
 
     bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom != 0;
