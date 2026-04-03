@@ -14,6 +14,7 @@ class _HomePageNotificationState extends State<HomePageNotification> {
   DateTime now = DateTime.now();
   bool isFetching = true;
   bool isWorkoutPlanSet = false;
+  bool noWorkoutToday = false;
   List<String> days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   late String today = days[now.weekday % 7];
   List<Map<String, dynamic>> workoutPlans = [];
@@ -54,7 +55,11 @@ class _HomePageNotificationState extends State<HomePageNotification> {
               todayData["exercises"].map((e) => {"name": e["name"].toString()}),
             );
           });
-          print(todayWorkout);
+        } else {
+          setState(() {
+            isWorkoutPlanSet = true;
+            noWorkoutToday = true;
+          });
         }
       }
     }
@@ -71,28 +76,27 @@ class _HomePageNotificationState extends State<HomePageNotification> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: 10, right: 10),
-      padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
-      decoration: BoxDecoration(
-        color: StandardData.backgroundColor1,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: isWorkoutPlanSet
-          ? Column(
+    return isWorkoutPlanSet
+        ? Container(
+            margin: EdgeInsets.only(left: 10, right: 10),
+            padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
+            decoration: BoxDecoration(
+              color: StandardData.backgroundColor1,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Workout Notification",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  "Workout Remainder",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
+                noWorkoutToday
+                    ? Text("Day: $today | Rest Day 😴")
+                    : Text("Garna baki xa"),
               ],
-            )
-          : Center(
-              child: Text(
-                isFetching ? "Fetching Data..." : "No Workout Plan Set",
-              ),
             ),
-    );
+          )
+        : Container();
   }
 }
