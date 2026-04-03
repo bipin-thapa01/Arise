@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class EditWorkoutPlan extends StatefulWidget {
   const EditWorkoutPlan({super.key});
@@ -13,6 +14,7 @@ class EditWorkoutPlan extends StatefulWidget {
 class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
   bool isPlanFetched = false;
   List<Map<String, dynamic>> workoutPlans = [];
+  String activePlanName = "";
 
   @override
   void initState() {
@@ -26,6 +28,12 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .collection("customWorkouts")
         .get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    activePlanName = userDoc.data()!["activeWorkoutPlan"];
+
     setState(() {
       isPlanFetched = true;
       workoutPlans = workoutPlanDocs.docs.map((doc) {
@@ -194,12 +202,39 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
                                               }),
                                         ],
                                       ),
+                                      workoutPlans[index]["name"] ==
+                                              activePlanName
+                                          ? TextButton(
+                                              onPressed: () {},
+                                              style: TextButton.styleFrom(
+                                                backgroundColor: StandardData
+                                                    .backgroundColor2,
+                                              ),
+                                              child: Text("Active Plan"),
+                                            )
+                                          : TextButton(
+                                              onPressed: () {},
+                                              style: TextButton.styleFrom(
+                                                backgroundColor: StandardData
+                                                    .primaryColor
+                                                    .withAlpha(100),
+                                              ),
+                                              child: Text("Set as Active Plan"),
+                                            ),
                                     ],
                                   ),
                                 );
                               },
                             )
-                    : Text("Fetching..."),
+                    : SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        child: Center(
+                          child: SpinKitThreeBounce(
+                            color: StandardData.primaryColor,
+                            size: 30.0,
+                          ),
+                        ),
+                      ),
               ],
             ),
           ),

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
+import 'package:fitness/standardData.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +88,8 @@ class Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    return const Center(
+      child: SpinKitThreeBounce(color: StandardData.primaryColor, size: 30.0),
+    );
   }
 }

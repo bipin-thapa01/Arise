@@ -45,28 +45,20 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
   Future<void> saveWorkout() async {
     if (!_formKey.currentState!.validate()) return;
     if (_controllers[content[0]["name"]]!.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Workout Name cannot be empty!")));
+      StandardData.normalSnackbar(context, "Workout Name cannot be empty!");
       return;
     }
     if (!isDaysDecided) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Number of days cannot be empty!")),
-      );
+      StandardData.normalSnackbar(context, "Number of days cannot be empty!");
       return;
     }
     for (var day in customWorkouts) {
       if (day["dayName"] == null || (day["dayName"] as String).isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Day Name cannot be empty!")));
+        StandardData.normalSnackbar(context, "Name of a day cannot be empty!");
         return;
       }
       if (day["exercises"] == null || (day["exercises"] as List).isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Exercise cannot be empty!")));
+        StandardData.normalSnackbar(context, "Exercise list cannot be empty!");
         return;
       }
     }
@@ -82,9 +74,7 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
             "workouts": customWorkouts,
           });
       Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Successfully Saved!")));
+      StandardData.normalSnackbar(context, "Workout Plan created!");
     } catch (e) {
       StandardData.errorSnackbar(context);
     }
