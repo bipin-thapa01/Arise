@@ -259,8 +259,8 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: HomePageCalorie(dailyDetails: dailyDetails),
             ),
-            SliverToBoxAdapter(child: HomePageNotification()),
             SliverToBoxAdapter(child: HomePageLog()),
+            SliverToBoxAdapter(child: HomePageNotification()),
             SliverToBoxAdapter(child: HomePageWorkout()),
             SliverToBoxAdapter(child: HomePageSkill(data: habits)),
           ],

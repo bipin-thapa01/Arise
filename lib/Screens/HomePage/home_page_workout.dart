@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/CustomWorkoutPlan/custom_workout_plan.dart';
+import 'package:fitness/Screens/CustomWorkoutPlan/edit_workout_plan.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -18,30 +19,6 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
   @override
   void initState() {
     super.initState();
-    _fetchWorkoutPlan();
-  }
-
-  Future<void> _fetchWorkoutPlan() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      final uid = user.uid;
-      final workoutDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("customWorkouts")
-          .get();
-      if (workoutDoc.size != 0) {
-        isEmpty = false;
-        setState(() {
-          workoutPlans = workoutDoc.docs.map((workout) {
-            return workout.data();
-          }).toList();
-        });
-      }
-    } catch (e) {
-      StandardData.errorSnackbar(context);
-    }
   }
 
   @override
@@ -82,33 +59,58 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
             "Your current workout plans",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          workoutPlans.isEmpty
-              ? Center(
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection("users")
+                .doc(FirebaseAuth.instance.currentUser!.uid)
+                .collection("customWorkouts")
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Text("Fetching...");
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(
                   child: Text(
                     "No workout plans found",
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 10),
-                    ...workoutPlans.map((workout) {
-                      listCount++;
-                      return Text("$listCount. ${workout["name"]}");
-                    }),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.only(left: 25, right: 25),
-                        backgroundColor: StandardData.primaryColor.withAlpha(
-                          100,
+                );
+              }
+
+              final workouts = snapshot.data!.docs;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10),
+                  ...workouts.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    var data = entry.value.data();
+
+                    return Text("${index + 1}. ${data["name"]}");
+                  }),
+                  SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditWorkoutPlan(),
                         ),
-                      ),
-                      child: Text("View all"),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: StandardData.primaryColor.withAlpha(100),
+                      padding: EdgeInsets.only(left: 20, right: 20),
                     ),
-                  ],
-                ),
+                    child: Text("View All"),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );

@@ -23,4 +23,10 @@ class StandardData {
       context,
     ).showSnackBar(SnackBar(content: Text("Error in execution! Try again")));
   }
+
+  static void normalSnackbar(final context, final String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
 }
