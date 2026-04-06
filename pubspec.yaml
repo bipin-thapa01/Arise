@@ -46,6 +46,7 @@ dependencies:
   table_calendar: ^3.2.0
   dropdown_button2: ^3.0.0
   flutter_spinkit: ^5.2.2
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:

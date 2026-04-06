@@ -71,6 +71,7 @@ class _HomePageState extends State<HomePage> {
               "steps": 0,
               "date": today,
               "createdAt": FieldValue.serverTimestamp(),
+              "habitsCompleted": 0,
             });
         setState(() {
           dailyDetails = {
@@ -80,6 +81,7 @@ class _HomePageState extends State<HomePage> {
             "steps": 0,
             "date": today,
             "createdAt": FieldValue.serverTimestamp(),
+            "habitsCompleted": 0,
           };
         });
       }

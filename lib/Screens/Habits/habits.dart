@@ -53,12 +53,33 @@ class _HabitsState extends State<Habits> {
     if (user == null) return;
     final uid = user.uid;
     try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .collection("habits")
+          .doc(id)
+          .get();
+      DateTime lastCompleted = doc.data()!["lastCompleted"].toDate();
+      String lastCompletedDateOnly = lastCompleted.toIso8601String().split(
+        "T",
+      )[0];
+      DateTime today = DateTime.now();
+      String todayDateOnly = today.toIso8601String().split("T")[0];
+      if (lastCompletedDateOnly == todayDateOnly) {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(uid)
+            .collection("dailyDetails")
+            .doc(todayDateOnly)
+            .update({"habitsCompleted": FieldValue.increment(-1)});
+      }
       await FirebaseFirestore.instance
           .collection("users")
           .doc(uid)
           .collection("habits")
           .doc(id)
           .delete();
+
       setState(() {
         habits.removeWhere((item) => item['id'] == id);
       });

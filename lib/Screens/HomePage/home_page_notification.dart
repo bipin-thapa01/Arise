@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/CustomWorkoutPlan/today_workout_plan.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -13,115 +14,112 @@ class HomePageNotification extends StatefulWidget {
 
 class _HomePageNotificationState extends State<HomePageNotification> {
   DateTime now = DateTime.now();
-  bool isFetching = true;
-  bool isWorkoutPlanSet = false;
   bool noWorkoutToday = false;
   String? activeWorkoutPlan;
   List<String> days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   late String today = days[now.weekday % 7];
-  List<Map<String, dynamic>> workoutPlans = [];
-  List<Map<String, String>> todayWorkout = [];
-
-  Future<void> _fetchWorkout() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    final userDetails = await FirebaseFirestore.instance
+  Stream<Map<String, dynamic>> getCombinedStream() {
+    final workoutPlanStream = FirebaseFirestore.instance
         .collection("users")
-        .doc(user!.uid)
-        .get();
-    activeWorkoutPlan = userDetails.get("activeWorkoutPlan");
-    if (activeWorkoutPlan != null) {
-      final workoutDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("customWorkouts")
-          .get();
-      setState(() {
-        workoutPlans = workoutDoc.docs.map((data) {
-          return data.data();
-        }).toList();
-      });
-      final activePlan = workoutPlans.firstWhere(
-        (plan) => plan["name"] == activeWorkoutPlan,
-        orElse: () => {},
-      );
-      if (activePlan.isNotEmpty) {
-        List workouts = activePlan["workouts"];
-        final todayData = workouts.firstWhere(
-          (w) => w["dayName"] == today,
-          orElse: () => null,
-        );
-        if (todayData != null) {
-          setState(() {
-            isWorkoutPlanSet = true;
-            todayWorkout = List<Map<String, String>>.from(
-              todayData["exercises"].map((e) => {"name": e["name"].toString()}),
-            );
-          });
-        } else {
-          setState(() {
-            isWorkoutPlanSet = true;
-            noWorkoutToday = true;
-          });
-        }
-      }
-    }
-    setState(() {
-      isFetching = false;
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("customWorkouts")
+        .snapshots();
+    final userData = FirebaseFirestore.instance
+        .collection("users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .snapshots();
+    return Rx.combineLatest2(workoutPlanStream, userData, (
+      workoutPlanStream,
+      userData,
+    ) {
+      return {"workoutPlan": workoutPlanStream, "userData": userData};
     });
   }
 
   @override
   void initState() {
     super.initState();
-    _fetchWorkout();
   }
 
   @override
   Widget build(BuildContext context) {
-    return isWorkoutPlanSet
-        ? Container(
-            margin: EdgeInsets.only(left: 10, right: 10),
-            padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
-            decoration: BoxDecoration(
-              color: StandardData.backgroundColor1,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Workout Remainder",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                noWorkoutToday
-                    ? Text("Day: $today | Rest Day 😴")
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Plan: $activeWorkoutPlan"),
-                          Text("Day: $today"),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TodayWorkoutPlan(
-                                    todayWorkout: todayWorkout,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: StandardData.primaryColor
-                                  .withAlpha(100),
+    return StreamBuilder(
+      stream: getCombinedStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container();
+        }
+
+        if (!snapshot.hasData) {
+          return Container();
+        }
+
+        final workoutPlansSnapshot = snapshot.data!["workoutPlan"];
+        final workoutPlans = workoutPlansSnapshot.docs
+            .map((doc) => doc.data())
+            .toList();
+        final userDataSnapshot = snapshot.data!["userData"];
+        final activePlan = userDataSnapshot.data()!["activeWorkoutPlan"];
+
+        if (activePlan == null) {
+          return Container();
+        }
+
+        final activeWorkoutPlan = workoutPlans.firstWhere(
+          (plan) => plan["name"] == activePlan,
+          orElse: () => {},
+        );
+
+        final workouts = activeWorkoutPlan["workouts"];
+
+        final todayWorkouts = workouts.firstWhere(
+          (workout) => workout["dayName"] == today,
+          orElse: () => {},
+        );
+
+        return Container(
+          margin: EdgeInsets.only(left: 10, right: 10, top: 5, bottom: 5),
+          padding: EdgeInsets.all(10),
+          width: MediaQuery.of(context).size.width,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: StandardData.backgroundColor1,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Workout Notification",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text("Plan: $activePlan"),
+              Text("Day: $today"),
+              todayWorkouts.isEmpty
+                  ? Text("Rest Day 😴")
+                  : TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TodayWorkoutPlan(
+                              todayWorkout: (todayWorkouts["exercises"] as List)
+                                  .map((e) => Map<String, String>.from(e))
+                                  .toList(),
                             ),
-                            child: Text("View Today Workout"),
                           ),
-                        ],
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: StandardData.primaryColor.withAlpha(
+                          100,
+                        ),
                       ),
-              ],
-            ),
-          )
-        : Container();
+                      child: Text("View Today Workout"),
+                    ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/Workout/workout_detail.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
