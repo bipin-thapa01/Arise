@@ -48,6 +48,7 @@ class _WorkoutState extends State<Workout> {
         visibleWorkouts.addAll(w);
       });
     }
+    print(visibleWorkouts);
   }
 
   @override
