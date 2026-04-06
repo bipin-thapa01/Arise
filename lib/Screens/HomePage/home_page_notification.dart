@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/CustomWorkoutPlan/today_workout_plan.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,7 @@ class _HomePageNotificationState extends State<HomePageNotification> {
   bool isFetching = true;
   bool isWorkoutPlanSet = false;
   bool noWorkoutToday = false;
+  String? activeWorkoutPlan;
   List<String> days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   late String today = days[now.weekday % 7];
   List<Map<String, dynamic>> workoutPlans = [];
@@ -26,7 +28,7 @@ class _HomePageNotificationState extends State<HomePageNotification> {
         .collection("users")
         .doc(user!.uid)
         .get();
-    String? activeWorkoutPlan = userDetails.get("activeWorkoutPlan");
+    activeWorkoutPlan = userDetails.get("activeWorkoutPlan");
     if (activeWorkoutPlan != null) {
       final workoutDoc = await FirebaseFirestore.instance
           .collection("users")
@@ -93,7 +95,30 @@ class _HomePageNotificationState extends State<HomePageNotification> {
                 ),
                 noWorkoutToday
                     ? Text("Day: $today | Rest Day 😴")
-                    : Text("Garna baki xa"),
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Plan: $activeWorkoutPlan"),
+                          Text("Day: $today"),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TodayWorkoutPlan(
+                                    todayWorkout: todayWorkout,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: StandardData.primaryColor
+                                  .withAlpha(100),
+                            ),
+                            child: Text("View Today Workout"),
+                          ),
+                        ],
+                      ),
               ],
             ),
           )
