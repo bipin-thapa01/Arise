@@ -59,6 +59,21 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
     StandardData.normalSnackbar(context, "Workout Plan Delete");
   }
 
+  Future<void> _setAsDefaultWorkout(String name) async {
+    try {
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update({"activeWorkoutPlan": name});
+      setState(() {
+        activePlanName = name;
+      });
+      StandardData.normalSnackbar(context, "Active Workout Plan changed!");
+    } catch (e) {
+      StandardData.errorSnackbar(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,7 +228,11 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
                                               child: Text("Active Plan"),
                                             )
                                           : TextButton(
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                _setAsDefaultWorkout(
+                                                  workoutPlans[index]["name"],
+                                                );
+                                              },
                                               style: TextButton.styleFrom(
                                                 backgroundColor: StandardData
                                                     .primaryColor

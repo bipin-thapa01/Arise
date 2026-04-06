@@ -14,6 +14,8 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
+  bool isAllHabitsDone = false;
+  List<Map<String, dynamic>> dailyDetails = [];
   List<String> months = [
     "Jan",
     "Feb",
@@ -48,6 +50,19 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
+  Future<void> getDailyDetails() async {
+    final dailyDetailsDoc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user?.uid)
+        .collection("dailyDetails")
+        .get();
+    setState(() {
+      dailyDetails = dailyDetailsDoc.docs.map((doc) {
+        return doc.data();
+      }).toList();
+    });
+  }
+
   bool shouldShowHabit(Map<String, dynamic> habit, DateTime day) {
     DateTime start = normalize((habit["createdAt"] as Timestamp).toDate());
 
@@ -70,6 +85,7 @@ class _CalendarPageState extends State<CalendarPage> {
   void initState() {
     super.initState();
     getHabits();
+    getDailyDetails();
   }
 
   @override
@@ -118,273 +134,31 @@ class _CalendarPageState extends State<CalendarPage> {
 
     bool isActualToday = isSameDay(day, DateTime.now());
 
+    isAllHabitsDone =
+        dailyDetails.firstWhere(
+          (data) => data["date"] == day.toIso8601String().split("T")[0],
+          orElse: () => {},
+        )["habitsCompleted"] ==
+        dayHabits.length;
+
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
           context: context,
           builder: (context) {
-            return Padding(
-              padding: EdgeInsets.all(10),
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: StandardData.primaryColor,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      "${day.day} ${months[day.month - 1]} ${day.year}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Habits",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            dayHabits.isEmpty
-                                ? Text("Empty List!")
-                                : ListView.builder(
-                                    padding: EdgeInsets.only(
-                                      top: 5,
-                                      bottom: 10,
-                                    ),
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    itemCount: dayHabits.length,
-                                    itemBuilder: (context, index) {
-                                      final lastCompleted =
-                                          dayHabits[index]["lastCompleted"];
-                                      bool alreadyDone =
-                                          lastCompleted == null || !isToday
-                                          ? false
-                                          : isSameDay(
-                                              (lastCompleted as Timestamp)
-                                                  .toDate(),
-                                              DateTime.now(),
-                                            );
-
-                                      return Container(
-                                        margin: EdgeInsets.only(bottom: 5),
-                                        padding: EdgeInsets.all(5),
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                            0.9,
-                                        decoration: BoxDecoration(
-                                          color: StandardData.backgroundColor1,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    dayHabits[index]["name"],
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  "Frequency: ${dayHabits[index]["frequency"]}",
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            TextButton(
-                                              onPressed: () async {
-                                                final now = DateTime.now();
-                                                final today = DateTime(
-                                                  now.year,
-                                                  now.month,
-                                                  now.day,
-                                                );
-
-                                                if (!isToday) {
-                                                  Navigator.pop(context);
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      behavior: SnackBarBehavior
-                                                          .floating,
-                                                      margin: EdgeInsets.only(
-                                                        left: 5,
-                                                        right: 5,
-                                                      ),
-                                                      content: Text(
-                                                        "Habits of future or past cannot be marked.",
-                                                      ),
-                                                    ),
-                                                  );
-                                                  return;
-                                                }
-                                                final habitData =
-                                                    dayHabits[index];
-                                                final lastCompleted =
-                                                    habitData["lastCompleted"]
-                                                        as Timestamp?;
-                                                int currentStreak =
-                                                    dayHabits[index]["currentStreak"];
-                                                int bestStreak =
-                                                    dayHabits[index]["bestStreak"];
-
-                                                if (lastCompleted != null) {
-                                                  DateTime lastDate =
-                                                      lastCompleted.toDate();
-                                                  DateTime lastDateNormalized =
-                                                      DateTime(
-                                                        lastDate.year,
-                                                        lastDate.month,
-                                                        lastDate.day,
-                                                      );
-
-                                                  if (lastDateNormalized
-                                                      .isAtSameMomentAs(
-                                                        today,
-                                                      )) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      const SnackBar(
-                                                        behavior:
-                                                            SnackBarBehavior
-                                                                .floating,
-                                                        content: Text(
-                                                          "Already Done today!",
-                                                        ),
-                                                      ),
-                                                    );
-                                                    return;
-                                                  }
-
-                                                  DateTime yesterday = today
-                                                      .subtract(
-                                                        const Duration(days: 1),
-                                                      );
-                                                  if (lastDateNormalized
-                                                      .isAtSameMomentAs(
-                                                        yesterday,
-                                                      )) {
-                                                    currentStreak += 1;
-                                                  } else {
-                                                    currentStreak = 1;
-                                                  }
-                                                  if (currentStreak >
-                                                      bestStreak) {
-                                                    bestStreak = currentStreak;
-                                                  }
-                                                } else {
-                                                  currentStreak = 1;
-                                                  bestStreak = 1;
-                                                }
-                                                Navigator.pop(context);
-                                                int i = habits.indexWhere(
-                                                  (habit) =>
-                                                      habit["id"] ==
-                                                      habitData["id"],
-                                                );
-
-                                                if (i != -1) {
-                                                  setState(() {
-                                                    habits[i]["currentStreak"] =
-                                                        currentStreak;
-                                                    habits[i]["bestStreak"] =
-                                                        bestStreak;
-                                                    habits[i]["lastCompleted"] =
-                                                        Timestamp.now();
-                                                  });
-                                                }
-                                                print(
-                                                  "Habit Id: ${habitData["id"]}",
-                                                );
-                                                try {
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection("users")
-                                                      .doc(user!.uid)
-                                                      .collection("habits")
-                                                      .doc(habitData["id"])
-                                                      .update({
-                                                        "lastCompleted":
-                                                            FieldValue.serverTimestamp(),
-                                                        "currentStreak":
-                                                            currentStreak,
-                                                        "bestStreak":
-                                                            bestStreak,
-                                                      });
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        "Successfully Updated!",
-                                                      ),
-                                                    ),
-                                                  );
-                                                } catch (e) {
-                                                  StandardData.errorSnackbar(
-                                                    context,
-                                                  );
-                                                }
-                                              },
-                                              style: TextButton.styleFrom(
-                                                backgroundColor:
-                                                    isToday && !alreadyDone
-                                                    ? StandardData.primaryColor
-                                                          .withAlpha(200)
-                                                    : StandardData
-                                                          .backgroundColor2,
-                                                padding: EdgeInsets.only(
-                                                  top: 0,
-                                                  bottom: 0,
-                                                  left: 5,
-                                                  right: 5,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                alreadyDone
-                                                    ? "Done"
-                                                    : "Mark as Done",
-                                                style: TextStyle(fontSize: 12),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            return HabitBottomSheet(
+              day: day,
+              dayHabits: dayHabits,
+              isToday: isToday,
+              habits: habits,
+              updateHabits: (updatedHabits) {
+                setState(() {
+                  habits = updatedHabits;
+                });
+              },
+              onHabitDone: () {
+                getDailyDetails();
+              },
             );
           },
         );
@@ -399,55 +173,303 @@ class _CalendarPageState extends State<CalendarPage> {
               ? StandardData.backgroundColor2
               : StandardData.backgroundColor1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Container(
-              padding: EdgeInsets.only(left: 2, right: 2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: isActualToday ? Colors.blueAccent : null,
-              ),
-              child: Text(
-                "${day.day}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isActualToday ? Colors.black : Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            ...dayHabits
-                .take(3)
-                .map(
-                  (habit) => Container(
-                    margin: const EdgeInsets.only(bottom: 2),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 1,
-                    ),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.deepPurple,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      habit["name"],
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(fontSize: 8, color: Colors.white),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.only(left: 2, right: 2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: isActualToday ? Colors.blueAccent : null,
+                  ),
+                  child: Text(
+                    "${day.day}",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isActualToday ? Colors.black : Colors.white,
                     ),
                   ),
-                )
-                .toList(),
-            if (dayHabits.length > 3)
-              Text(
-                "+${dayHabits.length - 3} more",
-                style: TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                ...dayHabits
+                    .take(3)
+                    .map(
+                      (habit) => Container(
+                        margin: const EdgeInsets.only(bottom: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          habit["name"],
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontSize: 8,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                if (dayHabits.length > 3)
+                  Text(
+                    "+${dayHabits.length - 3} more",
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+              ],
+            ),
+            if (isAllHabitsDone)
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(color: Colors.grey.withAlpha(100)),
+                child: Icon(
+                  Icons.verified,
+                  color: StandardData.iconColor2,
+                  size: 30,
+                ),
               ),
           ],
         ),
       ),
     );
+  }
+}
+
+class HabitBottomSheet extends StatelessWidget {
+  final VoidCallback onHabitDone;
+  final DateTime day;
+  final List<Map<String, dynamic>> dayHabits;
+  final bool isToday;
+  final List<Map<String, dynamic>> habits;
+  final Function(List<Map<String, dynamic>>) updateHabits;
+
+  const HabitBottomSheet({
+    super.key,
+    required this.day,
+    required this.dayHabits,
+    required this.isToday,
+    required this.habits,
+    required this.updateHabits,
+    required this.onHabitDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    List<String> months = [
+      "Jan",
+      "Feb",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "Aug",
+      "Sept",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Container(
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: StandardData.primaryColor,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              "${day.day} ${months[day.month - 1]} ${day.year}",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Habits", style: TextStyle(color: Colors.grey)),
+
+                  dayHabits.isEmpty
+                      ? Text("Empty List!")
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: dayHabits.length,
+                          itemBuilder: (context, index) {
+                            final habitData = dayHabits[index];
+
+                            final lastCompleted =
+                                habitData["lastCompleted"] as Timestamp?;
+
+                            bool alreadyDone =
+                                lastCompleted != null &&
+                                isToday &&
+                                isSameDay(
+                                  lastCompleted.toDate(),
+                                  DateTime.now(),
+                                );
+
+                            return _habitTile(context, habitData, alreadyDone);
+                          },
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _habitTile(
+    BuildContext context,
+    Map<String, dynamic> habitData,
+    bool alreadyDone,
+  ) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 5),
+      padding: EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: StandardData.backgroundColor1,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  habitData["name"],
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                "Frequency: ${habitData["frequency"]}",
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ],
+          ),
+
+          TextButton(
+            onPressed: () async {
+              await _handleMarkDone(context, habitData, alreadyDone);
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: alreadyDone
+                  ? StandardData.backgroundColor2
+                  : StandardData.primaryColor.withAlpha(200),
+              padding: EdgeInsets.symmetric(horizontal: 5),
+            ),
+            child: Text(
+              alreadyDone ? "Done" : "Mark as Done",
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleMarkDone(
+    BuildContext context,
+    Map<String, dynamic> habitData,
+    bool alreadyDone,
+  ) async {
+    if (!isToday) {
+      Navigator.pop(context);
+      StandardData.normalSnackbar(context, "Cannot mark past/future habits");
+      return;
+    }
+
+    if (alreadyDone) {
+      Navigator.pop(context);
+      StandardData.normalSnackbar(context, "Already Done today!");
+      return;
+    }
+
+    int currentStreak = habitData["currentStreak"];
+    int bestStreak = habitData["bestStreak"];
+
+    final lastCompleted = habitData["lastCompleted"] as Timestamp?;
+
+    DateTime today = DateTime.now();
+    today = DateTime(today.year, today.month, today.day);
+
+    if (lastCompleted != null) {
+      DateTime last = lastCompleted.toDate();
+      last = DateTime(last.year, last.month, last.day);
+
+      DateTime yesterday = today.subtract(Duration(days: 1));
+
+      if (last == yesterday) {
+        currentStreak++;
+      } else {
+        currentStreak = 1;
+      }
+
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+    } else {
+      currentStreak = 1;
+      bestStreak = 1;
+    }
+
+    int i = habits.indexWhere((h) => h["id"] == habitData["id"]);
+    if (i != -1) {
+      habits[i]["currentStreak"] = currentStreak;
+      habits[i]["bestStreak"] = bestStreak;
+      habits[i]["lastCompleted"] = Timestamp.now();
+      updateHabits(habits);
+    }
+
+    Navigator.pop(context);
+
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user!.uid)
+          .collection("habits")
+          .doc(habitData["id"])
+          .update({
+            "lastCompleted": FieldValue.serverTimestamp(),
+            "currentStreak": currentStreak,
+            "bestStreak": bestStreak,
+          });
+
+      final today = DateTime.now().toIso8601String().split("T")[0];
+
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user!.uid)
+          .collection("dailyDetails")
+          .doc(today)
+          .update({"habitsCompleted": FieldValue.increment(1)});
+
+      onHabitDone();
+
+      StandardData.normalSnackbar(context, "Successfully Updated!");
+    } catch (e) {
+      StandardData.errorSnackbar(context);
+    }
   }
 }
