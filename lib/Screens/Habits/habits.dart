@@ -59,7 +59,9 @@ class _HabitsState extends State<Habits> {
           .collection("habits")
           .doc(id)
           .get();
-      DateTime lastCompleted = doc.data()!["lastCompleted"].toDate();
+      DateTime lastCompleted = doc.data()!["lastCompleted"] != null
+          ? doc.data()!["lastCompleted"].toDate()
+          : DateTime.now().subtract(Duration(days: 1));
       String lastCompletedDateOnly = lastCompleted.toIso8601String().split(
         "T",
       )[0];
