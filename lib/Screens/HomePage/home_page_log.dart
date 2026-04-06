@@ -1,3 +1,4 @@
+import 'package:fitness/Screens/FoodLog/food_log.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -22,14 +23,19 @@ class _HomePageLogState extends State<HomePageLog> {
         spacing: 10,
         children: [
           Expanded(
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: StandardData.backgroundColor2,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: GestureDetector(
-                onTap: () {},
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => FoodLog()),
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: StandardData.backgroundColor2,
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Column(
                   spacing: 5,
                   children: [
@@ -48,14 +54,14 @@ class _HomePageLogState extends State<HomePageLog> {
             ),
           ),
           Expanded(
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: StandardData.backgroundColor2,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: GestureDetector(
-                onTap: () {},
+            child: GestureDetector(
+              onTap: () {},
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: StandardData.backgroundColor2,
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Column(
                   spacing: 5,
                   children: [
