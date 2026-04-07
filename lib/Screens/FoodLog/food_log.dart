@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class FoodLog extends StatefulWidget {
   const FoodLog({super.key});
@@ -10,28 +12,72 @@ class FoodLog extends StatefulWidget {
 }
 
 class _FoodLogState extends State<FoodLog> {
+  bool isSearching = false;
+  bool isSearchComplete = false;
+  String key = "";
   List<Map<String, dynamic>> foods = [];
 
-  Future<void> _fetchFood() async {
+  Future<void> _fetchKey() async {
+    final keyDoc = await FirebaseFirestore.instance
+        .collection("key")
+        .doc("food-api")
+        .get();
+    setState(() {
+      key = keyDoc.data()!["key"];
+    });
+  }
+
+  Future<void> _searchForFood(String value) async {
+    setState(() {
+      foods = [];
+      isSearching = true;
+      isSearchComplete = false;
+    });
+    final url = Uri.parse(
+      'https://api.nal.usda.gov/fdc/v1/foods/search?query=$value&api_key=$key',
+    );
     try {
-      final foodsDoc = await FirebaseFirestore.instance
-          .collection("foods")
-          .limit(20)
-          .get();
+      final response = await http.get(url);
+      final Map<String, dynamic> data = jsonDecode(response.body);
       setState(() {
-        foods = foodsDoc.docs.map((doc) {
-          return doc.data();
+        foods = (data["foods"] as List<dynamic>).map<Map<String, dynamic>>((
+          food,
+        ) {
+          return {
+            "name": food["description"].split(",")[0],
+            "description": food["description"],
+            "brandName": food["brandName"] ?? "",
+            "ingredients": food["ingredients"] ?? "",
+            "packageWeight": food["packageWeight"] ?? 0,
+            "servingSize": food["servingSize"] ?? 0,
+            "servingSizeUnit": food["servingSizeUnit"] ?? "",
+            "foodNutrients": food["foodNutrients"] ?? [],
+          };
         }).toList();
+        isSearching = false;
+        isSearchComplete = true;
       });
     } catch (e) {
-      StandardData.errorSnackbar(context);
+      StandardData.normalSnackbar(context, "Error searching data");
+    }
+  }
+
+  Future<void> saveFoodDetails(Map<String, dynamic> food) async {
+    final foodsCollection = FirebaseFirestore.instance.collection("foods");
+    final foodName = food["name"];
+    final querySnapshot = await foodsCollection
+        .where("name", isEqualTo: foodName)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isEmpty) {
+      await foodsCollection.add(food);
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _fetchFood();
+    _fetchKey();
   }
 
   @override
@@ -55,6 +101,9 @@ class _FoodLogState extends State<FoodLog> {
               child: Container(
                 margin: EdgeInsets.only(left: 10, right: 10, bottom: 10),
                 child: TextFormField(
+                  onFieldSubmitted: (value) {
+                    _searchForFood(value);
+                  },
                   decoration: InputDecoration(
                     hintText: "Search Food",
                     filled: true,
@@ -68,60 +117,327 @@ class _FoodLogState extends State<FoodLog> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: foods.isEmpty
-                ? Container(
-                    margin: EdgeInsets.only(top: 40),
-                    child: Center(child: Text("Fetching...")),
-                  )
-                : Column(
-                    children: [
-                      ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: foods.length,
-                        itemBuilder: (item, index) {
-                          return Container(
-                            margin: EdgeInsets.only(
-                              left: 10,
-                              right: 10,
-                              bottom: 10,
+          foods.isEmpty
+              ? isSearchComplete
+                    ? SliverToBoxAdapter(
+                        child: Center(child: Text("No food found!")),
+                      )
+                    : isSearching
+                    ? SliverToBoxAdapter(
+                        child: Center(child: Text("Searching...")),
+                      )
+                    : SliverToBoxAdapter(
+                        child: Center(child: Text("Search for Foods.")),
+                      )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) {
+                            saveFoodDetails(foods[index]);
+                            return FoodDetails(food: foods[index]);
+                          },
+                        );
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                        ),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: StandardData.backgroundColor1,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              foods[index]["description"],
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: StandardData.backgroundColor1,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  builder: (context) {
-                                    return FoodDetails(food: foods[index]);
-                                  },
-                                );
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    foods[index]["name"],
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    "View Details >",
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              "View Details >",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
+                      ),
+                    );
+                  }, childCount: foods.length),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class FoodDetails extends StatelessWidget {
+  final Map<String, dynamic> food;
+
+  const FoodDetails({super.key, required this.food});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = food['name'] ?? '';
+    final description = food['description'] ?? '';
+    final brandName = food['brandName'] ?? '';
+    final ingredientsRaw = food['ingredients'] ?? '';
+    final packageWeight = food['packageWeight'] ?? 0;
+    final servingSize = food['servingSize'] ?? 0;
+    final servingSizeUnit = food['servingSizeUnit'] ?? '';
+    final foodNutrients = food['foodNutrients'] as List? ?? [];
+
+    final ingredients = ingredientsRaw.toString().isNotEmpty
+        ? ingredientsRaw
+              .toString()
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+        : <String>[];
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: EdgeInsets.zero,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (brandName.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFa78bfa).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          brandName,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFa78bfa),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Text(
+                      name.isNotEmpty ? name : 'Unknown Food',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFF5F5F5),
+                        height: 1.3,
+                      ),
+                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF888888),
+                          height: 1.5,
+                        ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+
+              const Divider(color: Color(0xFF2A2A2A), height: 1),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (packageWeight != 0 || servingSize != 0) ...[
+                      _SectionTitle('Serving Info'),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          if (packageWeight != 0)
+                            Expanded(
+                              child: _MetricCard(
+                                label: 'Package weight',
+                                value: '$packageWeight',
+                                unit: 'g',
+                              ),
+                            ),
+                          if (packageWeight != 0 && servingSize != 0)
+                            const SizedBox(width: 10),
+                          if (servingSize != 0)
+                            Expanded(
+                              child: _MetricCard(
+                                label: 'Serving size',
+                                value: '$servingSize',
+                                unit: servingSizeUnit,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    _SectionTitle('Ingredients'),
+                    const SizedBox(height: 10),
+                    ingredients.isNotEmpty
+                        ? Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: ingredients
+                                  .map((i) => _IngredientChip(label: i))
+                                  .toList(),
+                            ),
+                          )
+                        : _EmptyState('No ingredients listed'),
+
+                    const SizedBox(height: 20),
+
+                    _SectionTitle('Nutrition Facts'),
+                    const SizedBox(height: 10),
+                    foodNutrients.isNotEmpty
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF252525),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              children: List.generate(foodNutrients.length, (
+                                i,
+                              ) {
+                                final nutrient =
+                                    foodNutrients[i] as Map<String, dynamic>;
+                                return _NutrientRow(
+                                  nutrient: nutrient,
+                                  isLast: i == foodNutrients.length - 1,
+                                  colorIndex: i,
+                                );
+                              }),
+                            ),
+                          )
+                        : _EmptyState('No nutrition data available'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.8,
+        color: Color(0xFF666666),
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final String unit;
+  const _MetricCard({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF666666)),
+          ),
+          const SizedBox(height: 4),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFF0F0F0),
                   ),
+                ),
+                if (unit.isNotEmpty)
+                  TextSpan(
+                    text: ' $unit',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF888888),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -129,17 +445,133 @@ class _FoodLogState extends State<FoodLog> {
   }
 }
 
-class FoodDetails extends StatefulWidget {
-  final Map<String, dynamic> food;
-  const FoodDetails({super.key, required this.food});
+class _IngredientChip extends StatelessWidget {
+  final String label;
+  const _IngredientChip({required this.label});
 
-  @override
-  State<FoodDetails> createState() => _FoodDetailsState();
-}
-
-class _FoodDetailsState extends State<FoodDetails> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFa78bfa).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFa78bfa).withOpacity(0.2),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: Color(0xFFc4b5fd)),
+      ),
+    );
+  }
+}
+
+const _nutrientColors = [
+  Color(0xFFa78bfa),
+  Color(0xFF60a5fa),
+  Color(0xFF34d399),
+  Color(0xFFfb923c),
+  Color(0xFFf472b6),
+  Color(0xFFfbbf24),
+];
+
+class _NutrientRow extends StatelessWidget {
+  final Map<String, dynamic> nutrient;
+  final bool isLast;
+  final int colorIndex;
+
+  const _NutrientRow({
+    required this.nutrient,
+    required this.isLast,
+    required this.colorIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name =
+        nutrient['nutrientName'] ??
+        nutrient['name'] ??
+        nutrient['nutrient']?['name'] ??
+        'Unknown';
+    final amount = nutrient['value'] ?? nutrient['amount'] ?? 0;
+    final unit =
+        nutrient['unitName'] ??
+        nutrient['unit'] ??
+        nutrient['nutrient']?['unitName'] ??
+        '';
+
+    final double barFill = (amount is num)
+        ? (amount / 100).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+
+    final color = _nutrientColors[colorIndex % _nutrientColors.length];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5),
+              ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name.toString(),
+              style: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 60,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: barFill,
+                backgroundColor: const Color(0xFF333333),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 4,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 64,
+            child: Text(
+              '$amount${unit.isNotEmpty ? ' $unit' : ''}',
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  const _EmptyState(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Color(0xFF555555)),
+      ),
+    );
   }
 }
