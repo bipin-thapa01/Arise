@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
+import 'package:fitness/Screens/FoodLog/food_log.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
 import 'package:fitness/Screens/HomePage/home_page_log.dart';
@@ -306,7 +307,10 @@ class _HomePageQRPopupState extends State<HomePageQRPopup> {
           );
         },
         'onTap2': () {
-          print("Search Food");
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => FoodLog()),
+          );
         },
       },
       {
