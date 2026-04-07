@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
-import 'package:fitness/Screens/FoodLog/food_log.dart';
+import 'package:fitness/Screens/FoodSearch/food_search.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
 import 'package:fitness/Screens/HomePage/home_page_calorie.dart';
 import 'package:fitness/Screens/HomePage/home_page_log.dart';
@@ -11,7 +11,6 @@ import 'package:fitness/Screens/HomePage/home_page_skill.dart';
 import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/Screens/Progress/calendar.dart';
-
 import 'package:fitness/Screens/Settings/settings.dart' as st;
 import 'package:fitness/Screens/Workout/workout.dart';
 import 'package:fitness/standardData.dart';
@@ -309,7 +308,7 @@ class _HomePageQRPopupState extends State<HomePageQRPopup> {
         'onTap2': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => FoodLog()),
+            MaterialPageRoute(builder: (context) => FoodSearch()),
           );
         },
       },

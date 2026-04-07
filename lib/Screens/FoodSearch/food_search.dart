@@ -1,31 +1,23 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class FoodLog extends StatefulWidget {
-  const FoodLog({super.key});
+class FoodSearch extends StatefulWidget {
+  const FoodSearch({super.key});
 
   @override
-  State<FoodLog> createState() => _FoodLogState();
+  State<FoodSearch> createState() => _FoodLogState();
 }
 
-class _FoodLogState extends State<FoodLog> {
-  bool isSearchingFavFoods = false;
+class _FoodLogState extends State<FoodSearch> {
   bool isSearching = false;
   bool isSearchComplete = false;
   String key = "";
-  List<Map<String, dynamic>> favFoods = [];
-  List<Map<String, dynamic>> searchFoods = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchKey();
-    _fetchFavFoods();
-  }
+  List<Map<String, dynamic>> foods = [];
 
   Future<void> _fetchKey() async {
     final keyDoc = await FirebaseFirestore.instance
@@ -37,33 +29,9 @@ class _FoodLogState extends State<FoodLog> {
     });
   }
 
-  Future<void> _fetchFavFoods() async {
+  Future<void> _searchForFood(String value) async {
     setState(() {
-      isSearchingFavFoods = true;
-    });
-    try {
-      final favFoodsDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("favouriteFoods")
-          .get();
-      setState(() {
-        favFoods = favFoodsDoc.docs.map((doc) {
-          return doc.data();
-        }).toList();
-        isSearchingFavFoods = false;
-      });
-    } catch (e) {
-      setState(() {
-        isSearchingFavFoods = false;
-      });
-      StandardData.normalSnackbar(context, "Error searching favourite foods");
-    }
-  }
-
-  Future<void> _searchFoods(String value) async {
-    setState(() {
-      searchFoods = [];
+      foods = [];
       isSearching = true;
       isSearchComplete = false;
     });
@@ -74,20 +42,20 @@ class _FoodLogState extends State<FoodLog> {
       final response = await http.get(url);
       final Map<String, dynamic> data = jsonDecode(response.body);
       setState(() {
-        searchFoods = (data["foods"] as List<dynamic>)
-            .map<Map<String, dynamic>>((food) {
-              return {
-                "name": food["description"].split(",")[0],
-                "description": food["description"],
-                "brandName": food["brandName"] ?? "",
-                "ingredients": food["ingredients"] ?? "",
-                "packageWeight": food["packageWeight"] ?? 0,
-                "servingSize": food["servingSize"] ?? 0,
-                "servingSizeUnit": food["servingSizeUnit"] ?? "",
-                "foodNutrients": food["foodNutrients"] ?? [],
-              };
-            })
-            .toList();
+        foods = (data["foods"] as List<dynamic>).map<Map<String, dynamic>>((
+          food,
+        ) {
+          return {
+            "name": food["description"].split(",")[0],
+            "description": food["description"],
+            "brandName": food["brandName"] ?? "",
+            "ingredients": food["ingredients"] ?? "",
+            "packageWeight": food["packageWeight"] ?? 0,
+            "servingSize": food["servingSize"] ?? 0,
+            "servingSizeUnit": food["servingSizeUnit"] ?? "",
+            "foodNutrients": food["foodNutrients"] ?? [],
+          };
+        }).toList();
         isSearching = false;
         isSearchComplete = true;
       });
@@ -113,243 +81,106 @@ class _FoodLogState extends State<FoodLog> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchKey();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Food Log"),
-          titleSpacing: 0,
-          scrolledUnderElevation: 0,
-          backgroundColor: Theme.of(context).primaryColor,
-          leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: Icon(Icons.arrow_back_ios_new),
-          ),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: "Favourites"),
-              Tab(text: "Search"),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Food Search"),
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: Icon(Icons.arrow_back_ios_new),
         ),
-        body: TabBarView(
-          children: [
-            CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Text(
-                      "Favourite Foods",
-                      style: TextStyle(color: Colors.grey),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Form(
+              child: Container(
+                margin: EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                child: TextFormField(
+                  onFieldSubmitted: (value) {
+                    _searchForFood(value);
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Search Food",
+                    filled: true,
+                    fillColor: StandardData.backgroundColor1,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                favFoods.isEmpty
-                    ? isSearchingFavFoods
-                          ? SliverToBoxAdapter(
-                              child: Center(child: Text("Fetching...")),
-                            )
-                          : SliverToBoxAdapter(
-                              child: Center(
-                                child: Text("Empty Favourite List"),
-                              ),
-                            )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          return Container(
-                            margin: EdgeInsets.only(
-                              left: 10,
-                              right: 10,
-                              bottom: 10,
-                            ),
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: StandardData.backgroundColor1,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (context) {
-                                          return FoodDetails(
-                                            food: favFoods[index],
-                                            fetchFavFoods: _fetchFavFoods,
-                                          );
-                                        },
-                                      );
-                                    },
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(favFoods[index]["name"]),
-                                        Text(
-                                          "View Details>",
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {},
-                                  style: TextButton.styleFrom(
-                                    backgroundColor: StandardData.primaryColor
-                                        .withAlpha(100),
-                                  ),
-                                  child: Text("Log Food"),
-                                ),
-                              ],
-                            ),
-                          );
-                        }, childCount: favFoods.length),
-                      ),
-              ],
+              ),
             ),
-            CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Form(
-                    child: Container(
-                      margin: EdgeInsets.only(left: 10, right: 10, top: 10),
-                      height: 50,
-                      child: TextFormField(
-                        onFieldSubmitted: (value) {
-                          _searchFoods(value);
-                        },
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: StandardData.backgroundColor2,
-                          hintText: "Search Foods",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
+          ),
+          foods.isEmpty
+              ? isSearchComplete
+                    ? SliverToBoxAdapter(
+                        child: Center(child: Text("No food found!")),
+                      )
+                    : isSearching
+                    ? SliverToBoxAdapter(
+                        child: Center(child: Text("Searching...")),
+                      )
+                    : SliverToBoxAdapter(
+                        child: Center(child: Text("Search for Foods.")),
+                      )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) {
+                            saveFoodDetails(foods[index]);
+                            return FoodDetails(food: foods[index]);
+                          },
+                        );
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                        ),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: StandardData.backgroundColor1,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              foods[index]["description"],
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              "View Details >",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }, childCount: foods.length),
                 ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 10,
-                      top: 10,
-                      bottom: 10,
-                    ),
-                    child: Text(
-                      "Searched Foods",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-                searchFoods.isEmpty
-                    ? isSearchComplete
-                          ? SliverToBoxAdapter(
-                              child: Center(
-                                child: Text(
-                                  "No food found!",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            )
-                          : isSearching
-                          ? SliverToBoxAdapter(
-                              child: Center(
-                                child: Text(
-                                  "Searching...",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            )
-                          : SliverToBoxAdapter(
-                              child: Center(
-                                child: Text(
-                                  "Search for Foods",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          return Container(
-                            margin: EdgeInsets.only(
-                              left: 10,
-                              right: 10,
-                              bottom: 10,
-                            ),
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: StandardData.backgroundColor1,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (context) {
-                                          saveFoodDetails(searchFoods[index]);
-                                          return FoodDetails(
-                                            food: searchFoods[index],
-                                            fetchFavFoods: _fetchFavFoods,
-                                          );
-                                        },
-                                      );
-                                    },
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          searchFoods[index]["description"],
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          "View Details >",
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {},
-                                  style: TextButton.styleFrom(
-                                    backgroundColor: StandardData.primaryColor
-                                        .withAlpha(100),
-                                  ),
-                                  child: Text("Log Food"),
-                                ),
-                              ],
-                            ),
-                          );
-                        }, childCount: searchFoods.length),
-                      ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -357,13 +188,8 @@ class _FoodLogState extends State<FoodLog> {
 
 class FoodDetails extends StatefulWidget {
   final Map<String, dynamic> food;
-  final Future<void> Function() fetchFavFoods;
 
-  const FoodDetails({
-    super.key,
-    required this.food,
-    required this.fetchFavFoods,
-  });
+  const FoodDetails({super.key, required this.food});
 
   @override
   State<FoodDetails> createState() => _FoodDetailsState();
@@ -379,18 +205,21 @@ class _FoodDetailsState extends State<FoodDetails> {
   }
 
   Future<void> _checkFavourite() async {
-    final result = await FirebaseFirestore.instance
+    final favouriteFoodDocs = await FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .collection("favouriteFoods")
-        .where("name", isEqualTo: widget.food["name"])
-        .where("brandName", isEqualTo: widget.food["brandName"] ?? "")
-        .limit(1)
         .get();
-    if (result.docs.isNotEmpty) {
-      setState(() {
-        isFavourite = true;
+    if (favouriteFoodDocs.docs.isNotEmpty) {
+      final favFood = favouriteFoodDocs.docs.where((doc) {
+        return doc.data()["name"] == widget.food["name"] &&
+            doc.data()["brandName"] == widget.food["brandName"];
       });
+      if (favFood.isNotEmpty) {
+        setState(() {
+          isFavourite = true;
+        });
+      }
     }
   }
 
@@ -404,7 +233,6 @@ class _FoodDetailsState extends State<FoodDetails> {
       setState(() {
         isFavourite = true;
       });
-      widget.fetchFavFoods();
     } catch (e) {
       StandardData.normalSnackbar(context, "Error setting fav food");
     }
@@ -428,7 +256,6 @@ class _FoodDetailsState extends State<FoodDetails> {
       setState(() {
         isFavourite = false;
       });
-      widget.fetchFavFoods();
     } catch (e) {
       StandardData.normalSnackbar(context, "Error removing fav food");
     }
