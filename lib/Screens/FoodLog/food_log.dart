@@ -205,7 +205,17 @@ class _FoodLogState extends State<FoodLog> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        return LogFoodForm(
+                                          food: favFoods[index],
+                                        );
+                                      },
+                                    );
+                                  },
                                   style: TextButton.styleFrom(
                                     backgroundColor: StandardData.primaryColor
                                         .withAlpha(100),
@@ -347,6 +357,328 @@ class _FoodLogState extends State<FoodLog> {
                         }, childCount: searchFoods.length),
                       ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LogFoodForm extends StatefulWidget {
+  final Map<String, dynamic> food;
+  const LogFoodForm({super.key, required this.food});
+
+  @override
+  State<LogFoodForm> createState() => _LogFoodFormState();
+}
+
+class _LogFoodFormState extends State<LogFoodForm> {
+  final _key = GlobalKey<FormState>();
+  final TextEditingController logQuantity = TextEditingController();
+  double quantity = 100.0;
+  String unit = "g";
+  double energy = 0;
+  bool isWater = false;
+  double waterAmount = 0;
+
+  double getEnergy(List<dynamic> nutrients) {
+    for (var item in nutrients) {
+      if (item["nutrientName"] == "Energy") {
+        return (item["value"] as num).toDouble();
+      }
+    }
+    return 0;
+  }
+
+  void setQuantityAndUnit() {
+    setState(() {
+      energy = getEnergy(widget.food["foodNutrients"]);
+    });
+    final packageWeight = widget.food["packageWeight"] != ""
+        ? widget.food["packageWeight"]
+        : 0;
+    if (packageWeight != 0) {
+      if (packageWeight is! int) {
+        final data = packageWeight.split("/");
+        final value = data[data.length - 1];
+        setState(() {
+          quantity = double.tryParse(value.split(" ")[0]) ?? 100;
+          unit = value.split(" ")[1];
+        });
+      } else {
+        setState(() {
+          quantity = packageWeight as double;
+          unit = "g";
+        });
+      }
+      if (unit.toLowerCase() == "ml") {
+        setState(() {
+          isWater = true;
+          waterAmount = quantity;
+        });
+      }
+      if (unit.toLowerCase() == "l") {
+        setState(() {
+          isWater = true;
+          waterAmount = quantity * 100;
+        });
+      }
+      return;
+    }
+    final servingSize = widget.food["servingSize"] != 0
+        ? widget.food["servingSize"]
+        : 100.0;
+    final servingSizeUnit = widget.food["servingSizeUnit"] != ""
+        ? widget.food["servingSizeUnit"]
+        : "g";
+    if (unit.toLowerCase() == "ml") {
+      setState(() {
+        isWater = true;
+        waterAmount = quantity;
+      });
+    }
+    if (unit.toLowerCase() == "l") {
+      setState(() {
+        isWater = true;
+        waterAmount = quantity * 1000;
+      });
+    }
+    setState(() {
+      quantity = servingSize as double;
+      unit = servingSizeUnit;
+    });
+  }
+
+  Future<void> logFood() async {
+    if (_key.currentState!.validate()) {
+      final inputQuantity = logQuantity.text;
+      double eatenQuantity = double.tryParse(inputQuantity) ?? 0;
+      double calorieConsumed = (eatenQuantity / quantity) * energy;
+      String today = DateTime.now().toString().split(" ")[0];
+      final docRef = FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("dailyDetails")
+          .doc(today);
+
+      Map<String, dynamic> dataToUpdate = {
+        "consumed": FieldValue.increment(calorieConsumed),
+      };
+
+      if (isWater) {
+        if (unit.toLowerCase() == 'l') {
+          eatenQuantity = eatenQuantity * 1000;
+        }
+        dataToUpdate["water"] = FieldValue.increment(eatenQuantity);
+      }
+
+      await docRef.set(dataToUpdate, SetOptions(merge: true));
+
+      final Map<String, dynamic> foodLog = {
+        "name": widget.food["name"],
+        "brandName": widget.food["brandName"] ?? "",
+        "quantity": eatenQuantity,
+        "unit": unit,
+        "calorieConsumed": calorieConsumed,
+      };
+
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("foodLog")
+          .doc(DateTime.now().toString())
+          .set(foodLog);
+
+      Navigator.pop(context);
+      StandardData.normalSnackbar(context, "Food Logged successfully");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setQuantityAndUnit();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 10,
+        left: 10,
+        right: 10,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+      ),
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                margin: EdgeInsets.only(bottom: 10),
+                width: 30,
+                height: 5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white24,
+                ),
+              ),
+            ),
+            Center(
+              child: Text(
+                "Log Food",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.food["brandName"] != "")
+                    Container(
+                      padding: EdgeInsets.only(
+                        top: 2,
+                        bottom: 3,
+                        left: 5,
+                        right: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: StandardData.primaryColor.withAlpha(40),
+                      ),
+                      child: Text(
+                        widget.food["brandName"],
+                        style: TextStyle(
+                          color: StandardData.primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    "${widget.food["name"] ?? "Unknown Food"}",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  Text(
+                    widget.food["description"] ?? "",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  Divider(),
+                  Row(
+                    spacing: 20,
+                    children: [
+                      if (widget.food["packageWeight"] != "")
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: StandardData.backgroundColor2,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Package Weight",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text("${widget.food["packageWeight"]}"),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (widget.food["servingSize"] != null)
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: StandardData.backgroundColor2,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Serving Size",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  "${widget.food["servingSize"]} ${widget.food["servingSizeUnit"]}",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  Divider(),
+                  Form(
+                    key: _key,
+                    child: TextFormField(
+                      controller: logQuantity,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Field cannot be empty";
+                        }
+                        double v = double.tryParse(value) ?? 0;
+                        if (v == 0 || v < 0) {
+                          return "Negative value is not accepted";
+                        }
+                        return null;
+                      },
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: StandardData.backgroundColor2,
+                        hintText: "Eaten Quantity",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        suffix: Text(unit),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      spacing: 10,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            logFood();
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: StandardData.primaryColor
+                                .withAlpha(100),
+                          ),
+                          child: Text("Log"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: StandardData.backgroundColor2
+                                .withAlpha(100),
+                          ),
+                          child: Text("Cancel"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
