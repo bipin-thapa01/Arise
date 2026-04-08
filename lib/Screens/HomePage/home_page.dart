@@ -29,12 +29,7 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final storage = FlutterSecureStorage();
   Map<String, dynamic>? data;
-  Map<String, dynamic> dailyDetails = {
-    "consumed": 0,
-    "expend": 0,
-    "water": 0,
-    "steps": 0,
-  };
+  Map<String, dynamic> dailyDetails = {"consumed": 0.0, "water": 0, "steps": 0};
   List<Map<String, dynamic>> habits = [];
 
   @override
@@ -65,9 +60,8 @@ class _HomePageState extends State<HomePage> {
             .collection("dailyDetails")
             .doc(today)
             .set({
-              "consumed": 0,
-              "expend": 0,
-              "water": 0,
+              "consumed": 0.0,
+              "water": 0.0,
               "steps": 0,
               "date": today,
               "createdAt": FieldValue.serverTimestamp(),
@@ -75,9 +69,8 @@ class _HomePageState extends State<HomePage> {
             });
         setState(() {
           dailyDetails = {
-            "consumed": 0,
-            "expend": 0,
-            "water": 0,
+            "consumed": 0.0,
+            "water": 0.0,
             "steps": 0,
             "date": today,
             "createdAt": FieldValue.serverTimestamp(),
