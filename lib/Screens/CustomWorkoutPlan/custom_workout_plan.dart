@@ -107,181 +107,192 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
             ),
           ),
           SliverToBoxAdapter(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  SizedBox(height: 20),
-                  ...content.map((data) {
-                    return Container(
-                      width: MediaQuery.of(context).size.width * 0.95,
-                      margin: EdgeInsets.only(bottom: 15),
-                      child: TextFormField(
-                        keyboardType: data["type"] == "number"
-                            ? TextInputType.number
-                            : TextInputType.text,
-                        inputFormatters: data["type"] == "number"
-                            ? [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[1-7]'),
-                                ),
-                              ]
-                            : null,
-                        controller: _controllers[data["name"]],
-                        onChanged: (value) {
-                          setState(() {
-                            if (value.isEmpty) {
-                              isDaysDecided = false;
-                              numberOfDays = 0;
-                              initCustomWorkouts(0);
-                              return;
-                            }
-                            if (data["type"] == "number") {
-                              isDaysDecided = true;
-                              numberOfDays = int.parse(value);
-                              initCustomWorkouts(numberOfDays);
-                              print(customWorkouts);
-                            }
-                          });
-                        },
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: StandardData.buttonColor1,
-                          labelText: data["name"],
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: StandardData.primaryColor,
-                              width: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 20),
+                    ...content.map((data) {
+                      return Container(
+                        width: MediaQuery.of(context).size.width * 0.95,
+                        margin: EdgeInsets.only(bottom: 15),
+                        child: TextFormField(
+                          keyboardType: data["type"] == "number"
+                              ? TextInputType.number
+                              : TextInputType.text,
+                          inputFormatters: data["type"] == "number"
+                              ? [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[1-7]'),
+                                  ),
+                                ]
+                              : null,
+                          controller: _controllers[data["name"]],
+                          onChanged: (value) {
+                            setState(() {
+                              if (value.isEmpty) {
+                                isDaysDecided = false;
+                                numberOfDays = 0;
+                                initCustomWorkouts(0);
+                                return;
+                              }
+                              if (data["type"] == "number") {
+                                isDaysDecided = true;
+                                numberOfDays = int.parse(value);
+                                initCustomWorkouts(numberOfDays);
+                                print(customWorkouts);
+                              }
+                            });
+                          },
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: StandardData.buttonColor1,
+                            labelText: data["name"],
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: StandardData.primaryColor,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                  if (isDaysDecided)
-                    for (int i = 1; i <= numberOfDays; i++)
-                      Container(
-                        width: MediaQuery.of(context).size.width,
-                        margin: EdgeInsets.only(
-                          bottom: 10,
-                          left: 10,
-                          right: 10,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("For Day $i"),
-                            SizedBox(height: 8),
-                            DropdownButtonFormField2(
-                              decoration: InputDecoration(
-                                hintText: customWorkouts[i - 1]["dayName"],
-                                filled: true,
-                                fillColor: StandardData.backgroundColor1,
-                                labelText: "Select Day",
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
+                      );
+                    }),
+                    if (isDaysDecided)
+                      for (int i = 1; i <= numberOfDays; i++)
+                        Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: EdgeInsets.only(
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("For Day $i"),
+                              SizedBox(height: 8),
+                              DropdownButtonFormField2(
+                                decoration: InputDecoration(
+                                  hintText: customWorkouts[i - 1]["dayName"],
+                                  filled: true,
+                                  fillColor: StandardData.backgroundColor1,
+                                  labelText: "Select Day",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: EdgeInsets.only(left: 10),
                                 ),
-                                contentPadding: EdgeInsets.only(left: 10),
-                              ),
-                              isExpanded: true,
-                              items:
-                                  [
-                                    "Sun",
-                                    "Mon",
-                                    "Tue",
-                                    "Wed",
-                                    "Thu",
-                                    "Fri",
-                                    "Sat",
-                                  ].map((day) {
-                                    bool isDisabled = customWorkouts
-                                        .asMap()
-                                        .entries
-                                        .any(
-                                          (entry) =>
-                                              entry.key != i - 1 &&
-                                              entry.value["dayName"] == day,
-                                        );
-                                    return DropdownItem<String>(
-                                      value: day,
-                                      enabled: !isDisabled,
-                                      child: Text(
-                                        "$day ${isDisabled ? " (Already Taken)" : ""}",
-                                      ),
-                                    );
-                                  }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  customWorkouts[i - 1]["dayName"] = value!;
-                                });
-                              },
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  builder: (builder) {
-                                    return AddExercise(
-                                      day: i,
-                                      onExerciseAdded: () {
-                                        setState(() {});
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                backgroundColor: StandardData.primaryColor
-                                    .withAlpha(100),
-                              ),
-                              child: Text("Add Exercise"),
-                            ),
-                            if (customWorkouts[i - 1]["exercises"].isNotEmpty)
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                width: MediaQuery.of(context).size.width * 0.9,
-                                decoration: BoxDecoration(
-                                  color: StandardData.backgroundColor1,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Selected Exercises"),
-                                    ...customWorkouts[i - 1]["exercises"].map((
-                                      exercise,
-                                    ) {
-                                      return Text(
-                                        "- ${exercise["name"]}",
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
+                                isExpanded: true,
+                                items:
+                                    [
+                                      "Sun",
+                                      "Mon",
+                                      "Tue",
+                                      "Wed",
+                                      "Thu",
+                                      "Fri",
+                                      "Sat",
+                                    ].map((day) {
+                                      bool isDisabled = customWorkouts
+                                          .asMap()
+                                          .entries
+                                          .any(
+                                            (entry) =>
+                                                entry.key != i - 1 &&
+                                                entry.value["dayName"] == day,
+                                          );
+                                      return DropdownItem<String>(
+                                        value: day,
+                                        enabled: !isDisabled,
+                                        child: Text(
+                                          "$day ${isDisabled ? " (Already Taken)" : ""}",
                                         ),
                                       );
-                                    }),
-                                  ],
-                                ),
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    customWorkouts[i - 1]["dayName"] = value!;
+                                  });
+                                },
                               ),
-                            Divider(),
-                          ],
+                              TextButton(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    builder: (builder) {
+                                      return AddExercise(
+                                        day: i,
+                                        onExerciseAdded: () {
+                                          setState(() {});
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  backgroundColor: StandardData.primaryColor
+                                      .withAlpha(100),
+                                ),
+                                child: Text("Add Exercise"),
+                              ),
+                              if (customWorkouts[i - 1]["exercises"].isNotEmpty)
+                                Container(
+                                  padding: EdgeInsets.all(10),
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.9,
+                                  decoration: BoxDecoration(
+                                    color: StandardData.backgroundColor1,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Selected Exercises"),
+                                      ...customWorkouts[i - 1]["exercises"].map(
+                                        (exercise) {
+                                          return Text(
+                                            "- ${exercise["name"]}",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              Divider(),
+                            ],
+                          ),
+                        ),
+                    TextButton(
+                      onPressed: () {
+                        saveWorkout();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: StandardData.primaryColor.withAlpha(
+                          100,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                  TextButton(
-                    onPressed: () {
-                      saveWorkout();
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: StandardData.primaryColor.withAlpha(100),
+                      child: Text("Save Workout!"),
                     ),
-                    child: Text("Save Workout!"),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
