@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/FoodLog/customFoods.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -115,7 +116,7 @@ class _FoodLogState extends State<FoodLog> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text("Food Log"),
@@ -132,6 +133,7 @@ class _FoodLogState extends State<FoodLog> {
             tabs: [
               Tab(text: "Favourites"),
               Tab(text: "Search"),
+              Tab(text: "Custom Foods"),
             ],
           ),
         ),
@@ -358,6 +360,7 @@ class _FoodLogState extends State<FoodLog> {
                       ),
               ],
             ),
+            CustomFoods(),
           ],
         ),
       ),
@@ -469,6 +472,7 @@ class _LogFoodFormState extends State<LogFoodForm> {
       if (isWater) {
         if (unit.toLowerCase() == 'l') {
           eatenQuantity = eatenQuantity * 1000;
+          unit = "mL";
         }
         dataToUpdate["water"] = FieldValue.increment(eatenQuantity);
       }

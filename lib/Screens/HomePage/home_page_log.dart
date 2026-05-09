@@ -1,3 +1,4 @@
+import 'package:fitness/Screens/AddFood/add_food.dart';
 import 'package:fitness/Screens/FoodLog/food_log.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
@@ -55,7 +56,12 @@ class _HomePageLogState extends State<HomePageLog> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddFood()),
+                );
+              },
               child: Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -71,9 +77,9 @@ class _HomePageLogState extends State<HomePageLog> {
                         color: Colors.green,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Icon(Icons.sports_baseball),
+                      child: Icon(Icons.add),
                     ),
-                    Text("Log Workout"),
+                    Text("Add Food"),
                   ],
                 ),
               ),
