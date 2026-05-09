@@ -346,7 +346,17 @@ class _FoodLogState extends State<FoodLog> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        return LogFoodForm(
+                                          food: searchFoods[index],
+                                        );
+                                      },
+                                    );
+                                  },
                                   style: TextButton.styleFrom(
                                     backgroundColor: StandardData.primaryColor
                                         .withAlpha(100),
@@ -395,26 +405,53 @@ class _LogFoodFormState extends State<LogFoodForm> {
   }
 
   void setQuantityAndUnit() {
-    setState(() {
-      energy = getEnergy(widget.food["foodNutrients"]);
-    });
-    final packageWeight = widget.food["packageWeight"] != ""
-        ? widget.food["packageWeight"]
-        : 0;
-    if (packageWeight != 0) {
-      if (packageWeight is! int) {
-        final data = packageWeight.split("/");
-        final value = data[data.length - 1];
-        setState(() {
-          quantity = double.tryParse(value.split(" ")[0]) ?? 100;
-          unit = value.split(" ")[1];
-        });
-      } else {
-        setState(() {
-          quantity = packageWeight as double;
-          unit = "g";
-        });
+    if (widget.food.containsKey("by")) {
+      setState(() {
+        quantity = (widget.food["servingSize"] as num).toDouble();
+        unit = widget.food["servingSizeUnit"] as String;
+        energy = getEnergy(widget.food["foodNutrients"]);
+      });
+    } else {
+      setState(() {
+        energy = getEnergy(widget.food["foodNutrients"]);
+      });
+      final packageWeight = widget.food["packageWeight"] != ""
+          ? widget.food["packageWeight"]
+          : 0;
+      if (packageWeight != 0) {
+        if (packageWeight is! int) {
+          final data = packageWeight.split("/");
+          final value = data[data.length - 1];
+          setState(() {
+            quantity = double.tryParse(value.split(" ")[0]) ?? 100;
+            unit = value.split(" ")[1];
+          });
+        } else {
+          setState(() {
+            quantity = packageWeight as double;
+            unit = "g";
+          });
+        }
+        if (unit.toLowerCase() == "ml") {
+          setState(() {
+            isWater = true;
+            waterAmount = quantity;
+          });
+        }
+        if (unit.toLowerCase() == "l") {
+          setState(() {
+            isWater = true;
+            waterAmount = quantity * 100;
+          });
+        }
+        return;
       }
+      final servingSize = widget.food["servingSize"] != 0
+          ? widget.food["servingSize"]
+          : 100.0;
+      final servingSizeUnit = widget.food["servingSizeUnit"] != ""
+          ? widget.food["servingSizeUnit"]
+          : "g";
       if (unit.toLowerCase() == "ml") {
         setState(() {
           isWater = true;
@@ -424,78 +461,64 @@ class _LogFoodFormState extends State<LogFoodForm> {
       if (unit.toLowerCase() == "l") {
         setState(() {
           isWater = true;
-          waterAmount = quantity * 100;
+          waterAmount = quantity * 1000;
         });
       }
-      return;
-    }
-    final servingSize = widget.food["servingSize"] != 0
-        ? widget.food["servingSize"]
-        : 100.0;
-    final servingSizeUnit = widget.food["servingSizeUnit"] != ""
-        ? widget.food["servingSizeUnit"]
-        : "g";
-    if (unit.toLowerCase() == "ml") {
       setState(() {
-        isWater = true;
-        waterAmount = quantity;
+        quantity = servingSize as double;
+        unit = servingSizeUnit;
       });
     }
-    if (unit.toLowerCase() == "l") {
-      setState(() {
-        isWater = true;
-        waterAmount = quantity * 1000;
-      });
-    }
-    setState(() {
-      quantity = servingSize as double;
-      unit = servingSizeUnit;
-    });
   }
 
   Future<void> logFood() async {
     if (_key.currentState!.validate()) {
-      final inputQuantity = logQuantity.text;
-      double eatenQuantity = double.tryParse(inputQuantity) ?? 0;
-      double calorieConsumed = (eatenQuantity / quantity) * energy;
-      String today = DateTime.now().toString().split(" ")[0];
-      final docRef = FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("dailyDetails")
-          .doc(today);
+      try {
+        final inputQuantity = logQuantity.text;
+        double eatenQuantity = double.tryParse(inputQuantity) ?? 0;
+        double calorieConsumed = (eatenQuantity / quantity) * energy;
+        String today = DateTime.now().toString().split(" ")[0];
+        final docRef = FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("dailyDetails")
+            .doc(today);
 
-      Map<String, dynamic> dataToUpdate = {
-        "consumed": FieldValue.increment(calorieConsumed),
-      };
+        Map<String, dynamic> dataToUpdate = {
+          "consumed": FieldValue.increment(calorieConsumed),
+        };
 
-      if (isWater) {
-        if (unit.toLowerCase() == 'l') {
-          eatenQuantity = eatenQuantity * 1000;
-          unit = "mL";
+        if (isWater) {
+          if (unit.toLowerCase() == 'l') {
+            eatenQuantity = eatenQuantity * 1000;
+            unit = "mL";
+          }
+          dataToUpdate["water"] = FieldValue.increment(eatenQuantity);
         }
-        dataToUpdate["water"] = FieldValue.increment(eatenQuantity);
+
+        await docRef.set(dataToUpdate, SetOptions(merge: true));
+
+        final Map<String, dynamic> foodLog = {
+          "name": widget.food["name"],
+          "brandName": widget.food["brandName"] ?? "",
+          "quantity": eatenQuantity,
+          "unit": unit,
+          "calorieConsumed": calorieConsumed,
+        };
+
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("foodLog")
+            .doc(DateTime.now().toString())
+            .set(foodLog);
+
+        Navigator.pop(context);
+
+        StandardData.normalSnackbar(context, "Food Logged successfully");
+      } catch (e) {
+        StandardData.normalSnackbar(context, e.toString());
       }
-
-      await docRef.set(dataToUpdate, SetOptions(merge: true));
-
-      final Map<String, dynamic> foodLog = {
-        "name": widget.food["name"],
-        "brandName": widget.food["brandName"] ?? "",
-        "quantity": eatenQuantity,
-        "unit": unit,
-        "calorieConsumed": calorieConsumed,
-      };
-
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("foodLog")
-          .doc(DateTime.now().toString())
-          .set(foodLog);
-
-      Navigator.pop(context);
-      StandardData.normalSnackbar(context, "Food Logged successfully");
     }
   }
 
@@ -551,15 +574,15 @@ class _LogFoodFormState extends State<LogFoodForm> {
                         right: 5,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: StandardData.primaryColor.withAlpha(40),
+                        color: const Color(0xFFa78bfa).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         widget.food["brandName"],
                         style: TextStyle(
-                          color: StandardData.primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 11,
+                          color: Color(0xFFa78bfa),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -593,7 +616,9 @@ class _LogFoodFormState extends State<LogFoodForm> {
                                     fontSize: 12,
                                   ),
                                 ),
-                                Text("${widget.food["packageWeight"]}"),
+                                Text(
+                                  "${widget.food["packageWeight"] ?? "NaN"}",
+                                ),
                               ],
                             ),
                           ),
@@ -707,11 +732,25 @@ class FoodDetails extends StatefulWidget {
 
 class _FoodDetailsState extends State<FoodDetails> {
   bool isFavourite = false;
+  String by = "";
 
   @override
   void initState() {
     super.initState();
+    if (widget.food["by"] != "") {
+      _checkCreator();
+    }
     _checkFavourite();
+  }
+
+  Future<void> _checkCreator() async {
+    final user = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(widget.food["by"])
+        .get();
+    setState(() {
+      by = user.data()!["displayName"] ?? "UnknownUser";
+    });
   }
 
   Future<void> _checkFavourite() async {
@@ -792,7 +831,7 @@ class _FoodDetailsState extends State<FoodDetails> {
 
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.6,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
       maxChildSize: 0.92,
       builder: (context, scrollController) {
@@ -862,6 +901,28 @@ class _FoodDetailsState extends State<FoodDetails> {
                               fontSize: 13,
                               color: Color(0xFF888888),
                               height: 1.5,
+                            ),
+                          ),
+                        ],
+                        if (by.isNotEmpty) ...[
+                          RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                              children: [
+                                TextSpan(text: "By @"),
+                                TextSpan(
+                                  text: by.replaceAll(" ", ""),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: StandardData.primaryColor.withAlpha(
+                                      200,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

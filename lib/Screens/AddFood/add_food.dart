@@ -86,10 +86,17 @@ class _FoodFormState extends State<FoodForm> {
 
     try {
       FirebaseFirestore.instance.collection("customFood").add({
-        "description": _controllers[inputs[0]["name"]]!.text,
+        "name": _controllers[inputs[0]["name"]]!.text,
+        "brandName": "Custom",
         "servingSize": double.parse(_controllers[inputs[1]["name"]]!.text),
         "servingSizeUnit": selectedValue,
-        "calories": double.parse(_controllers[inputs[3]["name"]]!.text),
+        "foodNutrients": [
+          {
+            "nutrientName": "Energy",
+            "value": double.parse(_controllers[inputs[3]["name"]]!.text),
+            "unitName": "KCAL",
+          },
+        ],
         "createdAt": FieldValue.serverTimestamp(),
         "by": FirebaseAuth.instance.currentUser!.uid,
       });

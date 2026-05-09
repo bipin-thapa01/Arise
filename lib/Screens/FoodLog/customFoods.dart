@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/FoodLog/food_log.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -9,16 +11,22 @@ class CustomFoods extends StatefulWidget {
   State<CustomFoods> createState() => _CustomFoodsState();
 }
 
-class _CustomFoodsState extends State<CustomFoods> {
+class _CustomFoodsState extends State<CustomFoods>
+    with AutomaticKeepAliveClientMixin {
   bool isFetching = true;
+  bool isSearchingFavFoods = false;
   int count = 0;
   List<Map<String, dynamic>> customFoods = [];
+  List<Map<String, dynamic>> favFoods = [];
 
   @override
   void initState() {
     super.initState();
     fetchCustomFoods();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   Future<void> fetchCustomFoods() async {
     try {
@@ -42,6 +50,48 @@ class _CustomFoodsState extends State<CustomFoods> {
     }
   }
 
+  Future<void> _fetchFavFoods() async {
+    setState(() {
+      isSearchingFavFoods = true;
+    });
+    try {
+      final favFoodsDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("favouriteFoods")
+          .get();
+      setState(() {
+        favFoods = favFoodsDoc.docs.map((doc) {
+          return doc.data();
+        }).toList();
+        isSearchingFavFoods = false;
+      });
+    } catch (e) {
+      setState(() {
+        isSearchingFavFoods = false;
+      });
+      StandardData.normalSnackbar(context, "Error searching favourite foods");
+    }
+  }
+
+  Future<void> searchFoods(String value) async {
+    setState(() {
+      count = 0;
+      isSearchingFavFoods = true;
+    });
+    final customFoodsSnapshot = await FirebaseFirestore.instance
+        .collection("customFood")
+        .where("name", isEqualTo: value)
+        .get();
+    setState(() {
+      isSearchingFavFoods = false;
+      customFoods = customFoodsSnapshot.docs.map((doc) {
+        return doc.data();
+      }).toList();
+      count = customFoods.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -62,13 +112,21 @@ class _CustomFoodsState extends State<CustomFoods> {
                   borderSide: BorderSide.none,
                 ),
               ),
+              onFieldSubmitted: (value) {
+                searchFoods(value);
+              },
+              onChanged: (value) {
+                if (value.isEmpty) {
+                  fetchCustomFoods();
+                }
+              },
             ),
           ),
           Text("Custom Foods", style: TextStyle(color: Colors.grey)),
           isFetching
               ? Center(child: Text("Fetching Foods..."))
               : count == 0
-              ? Center(child: Text("No Custom Foods"))
+              ? Center(child: Text("No Food Found"))
               : Expanded(
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -91,7 +149,10 @@ class _CustomFoodsState extends State<CustomFoods> {
                                   showModalBottomSheet(
                                     context: context,
                                     builder: (context) {
-                                      return CustomFoodView();
+                                      return FoodDetails(
+                                        food: customFoods[index],
+                                        fetchFavFoods: _fetchFavFoods,
+                                      );
                                     },
                                   );
                                 },
@@ -99,7 +160,7 @@ class _CustomFoodsState extends State<CustomFoods> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      customFoods[index]["description"],
+                                      customFoods[index]["name"],
                                       style: TextStyle(fontSize: 16),
                                     ),
                                     Text(
@@ -114,10 +175,20 @@ class _CustomFoodsState extends State<CustomFoods> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  builder: (context) {
+                                    return LogFoodForm(
+                                      food: customFoods[index],
+                                    );
+                                  },
+                                );
+                              },
                               style: TextButton.styleFrom(
                                 backgroundColor: StandardData.primaryColor
-                                    .withAlpha(200),
+                                    .withAlpha(100),
                               ),
                               child: Text("Log Food"),
                             ),
@@ -129,24 +200,6 @@ class _CustomFoodsState extends State<CustomFoods> {
                 ),
         ],
       ),
-    );
-  }
-}
-
-class CustomFoodView extends StatefulWidget {
-  const CustomFoodView({super.key});
-
-  @override
-  State<CustomFoodView> createState() => _CustomFoodViewState();
-}
-
-class _CustomFoodViewState extends State<CustomFoodView> {
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      builder: (context, scrollController) {
-        return Container();
-      },
     );
   }
 }
