@@ -1,4 +1,7 @@
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/Workout/image_slider.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 
@@ -11,9 +14,71 @@ class WorkoutDetail extends StatefulWidget {
 }
 
 class _WorkoutDetailState extends State<WorkoutDetail> {
-  final PageController _pageController = PageController();
-  final String url =
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+  bool isFavourite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    checkFavourite();
+  }
+
+  Future<void> checkFavourite() async {
+    String name = widget.workout['name'];
+    try {
+      final favWorkout = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("favWorkouts")
+          .where("name", isEqualTo: name)
+          .get();
+      if (favWorkout.docs.isNotEmpty) {
+        setState(() {
+          isFavourite = true;
+        });
+      }
+    } catch (e) {
+      StandardData.normalSnackbar(context, "Error checking fav workout");
+    }
+  }
+
+  Future<void> addFavourite() async {
+    if (widget.workout["name"] == null || widget.workout["name"] == "") {
+      StandardData.normalSnackbar(
+        context,
+        "Workout without name cannot be set as fav",
+      );
+      return;
+    }
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("favWorkouts")
+          .add({"name": widget.workout["name"], "date": DateTime.now()});
+      setState(() {
+        isFavourite = true;
+      });
+    } catch (e) {
+      StandardData.normalSnackbar(context, "Error setting fav workout");
+    }
+  }
+
+  Future<void> removeFavourite() async {
+    try {
+      final workout = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("favWorkouts")
+          .where("name", isEqualTo: widget.workout["name"])
+          .get();
+      workout.docs.first.reference.delete();
+      setState(() {
+        isFavourite = false;
+      });
+    } catch (e) {
+      StandardData.normalSnackbar(context, "Error removing fav workout");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,81 +91,33 @@ class _WorkoutDetailState extends State<WorkoutDetail> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 400,
-            backgroundColor: Colors.black,
-            leading: _buildCircularButton(
-              Icons.arrow_back_ios_new,
-              () => Navigator.pop(context),
+            leading: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: Icon(Icons.arrow_back_ios_new),
             ),
             actions: [
-              _buildCircularButton(Icons.favorite_border, () {}),
+              isFavourite
+                  ? IconButton(
+                      onPressed: () {
+                        removeFavourite();
+                      },
+                      icon: Icon(Icons.favorite_outlined),
+                    )
+                  : IconButton(
+                      onPressed: () {
+                        addFavourite();
+                      },
+                      icon: Icon(Icons.favorite_border),
+                    ),
               const SizedBox(width: 10),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: images.isEmpty ? 1 : images.length,
-                    itemBuilder: (context, index) {
-                      return Image.network(
-                        "$url${widget.workout["images"][0]}",
-                        fit: BoxFit.fitWidth,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: const Color(0xFF1C1C1E),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.broken_image_outlined,
-                                size: 50,
-                                color: accentColor.withOpacity(0.5),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Preview Unavailable",
-                                style: TextStyle(
-                                  color: Colors.white24,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                  : null,
-                              color: accentColor,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Color(0xFF121212)],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
-
+          SliverToBoxAdapter(child: ImageSlider(images: images)),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -161,19 +178,6 @@ class _WorkoutDetailState extends State<WorkoutDetail> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCircularButton(IconData icon, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: CircleAvatar(
-        backgroundColor: Colors.black38,
-        child: IconButton(
-          icon: Icon(icon, color: Colors.white, size: 20),
-          onPressed: onTap,
-        ),
       ),
     );
   }

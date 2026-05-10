@@ -137,6 +137,7 @@ class _CustomFoodsState extends State<CustomFoods>
                     itemBuilder: (item, index) {
                       return Container(
                         padding: EdgeInsetsGeometry.all(10),
+                        margin: EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           color: StandardData.backgroundColor1,

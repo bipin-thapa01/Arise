@@ -411,6 +411,18 @@ class _LogFoodFormState extends State<LogFoodForm> {
         unit = widget.food["servingSizeUnit"] as String;
         energy = getEnergy(widget.food["foodNutrients"]);
       });
+      if (unit.toLowerCase() == "ml") {
+        setState(() {
+          isWater = true;
+          waterAmount = quantity;
+        });
+      }
+      if (unit.toLowerCase() == "l") {
+        setState(() {
+          isWater = true;
+          waterAmount = quantity * 1000;
+        });
+      }
     } else {
       setState(() {
         energy = getEnergy(widget.food["foodNutrients"]);
