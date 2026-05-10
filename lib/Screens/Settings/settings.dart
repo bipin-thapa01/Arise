@@ -25,7 +25,12 @@ class _SettingsState extends State<Settings> {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverAppBar(title: Text("Settings")),
+        SliverAppBar(
+          title: Text(
+            "Settings",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+          ),
+        ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(10),

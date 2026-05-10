@@ -83,7 +83,7 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
         ];
 
         return Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

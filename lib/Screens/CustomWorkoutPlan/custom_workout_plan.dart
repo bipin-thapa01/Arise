@@ -84,7 +84,10 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Custom Workout Plan"),
+        title: Text(
+          "Custom Workout Plan",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         titleSpacing: 0,
         backgroundColor: Theme.of(context).primaryColor,
         scrolledUnderElevation: 0,

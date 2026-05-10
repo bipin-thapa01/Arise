@@ -24,7 +24,7 @@ class _HomePageWorkoutState extends State<HomePageWorkout> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left: 10, right: 10, top: 5),
+      margin: EdgeInsets.only(left: 10, right: 10, top: 10),
       padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
       decoration: BoxDecoration(
         color: StandardData.backgroundColor1,

@@ -97,7 +97,11 @@ class _HabitsState extends State<Habits> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            title: Text("Habits"),
+            title: Text(
+              "Habits",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+            ),
+            titleSpacing: 0,
             leading: IconButton(
               onPressed: () {
                 Navigator.pop(context);
