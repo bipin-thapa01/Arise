@@ -11,7 +11,10 @@ class AddFood extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add Food"),
+        title: Text(
+          "Add Food",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         titleSpacing: 0,
         leading: IconButton(
           onPressed: () {

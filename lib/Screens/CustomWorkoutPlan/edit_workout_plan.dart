@@ -80,7 +80,10 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
       appBar: AppBar(
         scrolledUnderElevation: 0,
         backgroundColor: Theme.of(context).primaryColor,
-        title: Text("Edit Workout Plans"),
+        title: Text(
+          "Edit Workout Plans",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         titleSpacing: 0,
         leading: IconButton(
           onPressed: () {
@@ -92,169 +95,176 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Text(
-                  "Your Workout Plans",
-                  style: TextStyle(color: Colors.grey),
-                ),
-                isPlanFetched
-                    ? workoutPlans.isEmpty
-                          ? Text("No workout plans found")
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: workoutPlans.length,
-                              itemBuilder: (context, index) {
-                                return Container(
-                                  margin: EdgeInsets.only(
-                                    left: 10,
-                                    right: 10,
-                                    top: 20,
-                                  ),
-                                  padding: EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: StandardData.backgroundColor1,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              workoutPlans[index]["name"],
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Your Workout Plans",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  isPlanFetched
+                      ? workoutPlans.isEmpty
+                            ? Text("No workout plans found")
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: workoutPlans.length,
+                                padding: EdgeInsets.all(0),
+                                itemBuilder: (context, index) {
+                                  return Container(
+                                    margin: EdgeInsets.only(top: 10),
+                                    padding: EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: StandardData.backgroundColor1,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                workoutPlans[index]["name"],
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          IconButton(
-                                            onPressed: () {},
-                                            iconSize: 16,
-                                            style: IconButton.styleFrom(
-                                              padding: EdgeInsets.all(0),
+                                            IconButton(
+                                              onPressed: () {},
+                                              iconSize: 16,
+                                              style: IconButton.styleFrom(
+                                                padding: EdgeInsets.all(0),
+                                              ),
+                                              icon: Icon(Icons.edit),
                                             ),
-                                            icon: Icon(Icons.edit),
-                                          ),
-                                          IconButton(
-                                            iconSize: 16,
-                                            onPressed: () {
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: Text(
-                                                    "Are you sure you want to delete the Plan?",
-                                                    style: TextStyle(
-                                                      fontSize: 14,
+                                            IconButton(
+                                              iconSize: 16,
+                                              onPressed: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: Text(
+                                                      "Are you sure you want to delete the Plan?",
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                    content: Row(
+                                                      children: [
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            _deleteWorkoutPlan(
+                                                              workoutPlans[index]["name"],
+                                                            );
+                                                            Navigator.pop(
+                                                              context,
+                                                            );
+                                                          },
+                                                          style: TextButton.styleFrom(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  10,
+                                                                ),
+                                                            backgroundColor:
+                                                                StandardData
+                                                                    .primaryColor
+                                                                    .withAlpha(
+                                                                      100,
+                                                                    ),
+                                                          ),
+                                                          child: Text("Yes"),
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            Navigator.pop(
+                                                              context,
+                                                            );
+                                                          },
+                                                          style: TextButton.styleFrom(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  10,
+                                                                ),
+                                                            backgroundColor:
+                                                                StandardData
+                                                                    .backgroundColor2,
+                                                          ),
+                                                          child: Text("No"),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                  content: Row(
-                                                    children: [
-                                                      TextButton(
-                                                        onPressed: () {
-                                                          _deleteWorkoutPlan(
-                                                            workoutPlans[index]["name"],
-                                                          );
-                                                          Navigator.pop(
-                                                            context,
-                                                          );
-                                                        },
-                                                        style: TextButton.styleFrom(
-                                                          padding:
-                                                              EdgeInsets.all(
-                                                                10,
-                                                              ),
-                                                          backgroundColor:
-                                                              StandardData
-                                                                  .primaryColor
-                                                                  .withAlpha(
-                                                                    100,
-                                                                  ),
-                                                        ),
-                                                        child: Text("Yes"),
-                                                      ),
-                                                      SizedBox(width: 10),
-                                                      TextButton(
-                                                        onPressed: () {},
-                                                        style: TextButton.styleFrom(
-                                                          padding:
-                                                              EdgeInsets.all(
-                                                                10,
-                                                              ),
-                                                          backgroundColor:
-                                                              StandardData
-                                                                  .backgroundColor2,
-                                                        ),
-                                                        child: Text("No"),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            style: IconButton.styleFrom(
-                                              padding: EdgeInsets.all(0),
-                                            ),
-                                            icon: Icon(Icons.delete),
-                                          ),
-                                        ],
-                                      ),
-                                      Divider(),
-                                      Text(
-                                        "Frequency: ${workoutPlans[index]["frequency"]}",
-                                      ),
-                                      Row(
-                                        children: [
-                                          Text("Days: "),
-                                          ...workoutPlans[index]["workouts"]
-                                              .map((workout) {
-                                                return Text(
-                                                  "${workout["dayName"]} ",
-                                                );
-                                              }),
-                                        ],
-                                      ),
-                                      workoutPlans[index]["name"] ==
-                                              activePlanName
-                                          ? TextButton(
-                                              onPressed: () {},
-                                              style: TextButton.styleFrom(
-                                                backgroundColor: StandardData
-                                                    .backgroundColor2,
-                                              ),
-                                              child: Text("Active Plan"),
-                                            )
-                                          : TextButton(
-                                              onPressed: () {
-                                                _setAsDefaultWorkout(
-                                                  workoutPlans[index]["name"],
                                                 );
                                               },
-                                              style: TextButton.styleFrom(
-                                                backgroundColor: StandardData
-                                                    .primaryColor
-                                                    .withAlpha(100),
+                                              style: IconButton.styleFrom(
+                                                padding: EdgeInsets.all(0),
                                               ),
-                                              child: Text("Set as Active Plan"),
+                                              icon: Icon(Icons.delete),
                                             ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            )
-                    : SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.7,
-                        child: Center(
-                          child: SpinKitThreeBounce(
-                            color: StandardData.primaryColor,
-                            size: 30.0,
+                                          ],
+                                        ),
+                                        Divider(),
+                                        Text(
+                                          "Frequency: ${workoutPlans[index]["frequency"]}",
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text("Days: "),
+                                            ...workoutPlans[index]["workouts"]
+                                                .map((workout) {
+                                                  return Text(
+                                                    "${workout["dayName"]} ",
+                                                  );
+                                                }),
+                                          ],
+                                        ),
+                                        workoutPlans[index]["name"] ==
+                                                activePlanName
+                                            ? TextButton(
+                                                onPressed: () {},
+                                                style: TextButton.styleFrom(
+                                                  backgroundColor: StandardData
+                                                      .backgroundColor2,
+                                                ),
+                                                child: Text("Active Plan"),
+                                              )
+                                            : TextButton(
+                                                onPressed: () {
+                                                  _setAsDefaultWorkout(
+                                                    workoutPlans[index]["name"],
+                                                  );
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  backgroundColor: StandardData
+                                                      .primaryColor
+                                                      .withAlpha(100),
+                                                ),
+                                                child: Text(
+                                                  "Set as Active Plan",
+                                                ),
+                                              ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              )
+                      : SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: Center(
+                            child: SpinKitThreeBounce(
+                              color: StandardData.primaryColor,
+                              size: 30.0,
+                            ),
                           ),
                         ),
-                      ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

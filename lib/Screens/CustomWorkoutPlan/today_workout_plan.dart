@@ -23,7 +23,10 @@ class _TodayWorkoutPlanState extends State<TodayWorkoutPlan> {
           icon: Icon(Icons.arrow_back_ios_new),
         ),
         titleSpacing: 0,
-        title: Text("Today's Workout"),
+        title: Text(
+          "Today's Workout",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         scrolledUnderElevation: 0,
         backgroundColor: Theme.of(context).primaryColor,
       ),

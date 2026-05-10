@@ -14,7 +14,7 @@ class _HomePageLogState extends State<HomePageLog> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left: 10, right: 10, top: 5, bottom: 5),
+      margin: EdgeInsets.only(left: 10, right: 10, top: 10),
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: StandardData.backgroundColor1,

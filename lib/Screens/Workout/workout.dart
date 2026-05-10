@@ -12,48 +12,133 @@ class Workout extends StatefulWidget {
 
 class _WorkoutState extends State<Workout> {
   int limit = 20;
-  List<Map<String, dynamic>> visibleWorkouts = [];
-  DocumentSnapshot? lastDocument;
 
-  Future<void> fetchWorkouts() async {
-    if (lastDocument == null) {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
+  int currentPage = 0;
+  int totalPages = 1;
+
+  bool isSearching = false;
+  String searchQuery = "";
+
+  List<Map<String, dynamic>> visibleWorkouts = [];
+  List<Map<String, dynamic>> searchResults = [];
+
+  Future<void> findLength() async {
+    final result = await FirebaseFirestore.instance
+        .collection("exercises")
+        .count()
+        .get();
+
+    setState(() {
+      totalPages = ((result.count ?? 0) / limit).ceil();
+    });
+  }
+
+  Future<void> fetchPage(int page) async {
+    Query query = FirebaseFirestore.instance
+        .collection("exercises")
+        .orderBy("name")
+        .limit(limit);
+
+    DocumentSnapshot? last;
+
+    for (int i = 0; i < page; i++) {
+      final snap = await query.get();
+
+      if (snap.docs.isEmpty) break;
+
+      last = snap.docs.last;
+
+      query = FirebaseFirestore.instance
           .collection("exercises")
           .orderBy("name")
-          .limit(limit)
-          .get();
-      List<DocumentSnapshot> workouts = snapshot.docs;
-      lastDocument = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
-      List<Map<String, dynamic>> w = [];
-      for (var workout in workouts) {
-        w.add(workout.data() as Map<String, dynamic>);
-      }
-      setState(() {
-        visibleWorkouts.addAll(w);
-      });
-    } else {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("exercises")
-          .orderBy("name")
-          .startAfterDocument(lastDocument!)
-          .limit(limit)
-          .get();
-      List<DocumentSnapshot> workouts = snapshot.docs;
-      lastDocument = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
-      List<Map<String, dynamic>> w = [];
-      for (var workout in workouts) {
-        w.add(workout.data() as Map<String, dynamic>);
-      }
-      setState(() {
-        visibleWorkouts.addAll(w);
-      });
+          .startAfterDocument(last)
+          .limit(limit);
+    }
+
+    final snapshot = await query.get();
+
+    setState(() {
+      visibleWorkouts = snapshot.docs
+          .map((e) => e.data() as Map<String, dynamic>)
+          .toList();
+
+      currentPage = page;
+    });
+  }
+
+  Future<void> searchWorkout(String value) async {
+    searchQuery = value.toLowerCase();
+
+    if (searchQuery.isEmpty) {
+      isSearching = false;
+      currentPage = 0;
+      await fetchPage(0);
+      return;
+    }
+
+    isSearching = true;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection("exercises")
+        .get();
+
+    searchResults = snapshot.docs
+        .map((e) => e.data())
+        .where(
+          (data) => data["name"].toString().toLowerCase().contains(searchQuery),
+        )
+        .toList();
+
+    setState(() {
+      currentPage = 0;
+      totalPages = (searchResults.length / limit).ceil();
+    });
+  }
+
+  List<Map<String, dynamic>> get displayedWorkouts {
+    if (isSearching) {
+      final start = currentPage * limit;
+      final end = (start + limit) > searchResults.length
+          ? searchResults.length
+          : start + limit;
+
+      if (start >= searchResults.length) return [];
+
+      return searchResults.sublist(start, end);
+    }
+
+    return visibleWorkouts;
+  }
+
+  void nextPage() {
+    if (currentPage + 1 >= totalPages) return;
+
+    setState(() {
+      currentPage++;
+    });
+
+    if (!isSearching) {
+      fetchPage(currentPage);
+    }
+  }
+
+  void prevPage() {
+    if (currentPage == 0) return;
+
+    setState(() {
+      currentPage--;
+    });
+
+    if (!isSearching) {
+      fetchPage(currentPage);
     }
   }
 
   @override
   void initState() {
     super.initState();
-    fetchWorkouts();
+    findLength();
+    fetchPage(0);
   }
 
   @override
@@ -65,15 +150,16 @@ class _WorkoutState extends State<Workout> {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).primaryColor,
             pinned: true,
-            title: Text(
+            title: const Text(
               "Workout",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
             ),
-            actions: [],
           ),
+
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 10, right: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              height: 50,
               child: TextFormField(
                 decoration: InputDecoration(
                   filled: true,
@@ -84,50 +170,64 @@ class _WorkoutState extends State<Workout> {
                     borderSide: BorderSide.none,
                   ),
                 ),
+                onChanged: (value) {
+                  if (value.isEmpty) {
+                    isSearching = false;
+                    currentPage = 0;
+                    findLength();
+                    fetchPage(0);
+                  }
+                },
+                onFieldSubmitted: (value) {
+                  searchWorkout(value);
+                },
               ),
             ),
           ),
-          SliverToBoxAdapter(
+
+          const SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
+              padding: EdgeInsets.all(10),
               child: Text(
                 "Available Workouts",
                 style: TextStyle(color: Colors.grey),
               ),
             ),
           ),
+
           SliverToBoxAdapter(
-            child: visibleWorkouts.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Column(children: [Text("Fetching Workouts...")]),
+            child: displayedWorkouts.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: Text("No workouts found")),
                   )
                 : Column(
                     children: [
                       ListView.builder(
-                        padding: EdgeInsets.only(top: 10),
+                        padding: EdgeInsets.all(0),
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: visibleWorkouts.length,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: displayedWorkouts.length,
                         itemBuilder: (context, index) {
+                          final workout = displayedWorkouts[index];
+
                           return GestureDetector(
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => WorkoutDetail(
-                                    workout: visibleWorkouts[index],
-                                  ),
+                                  builder: (context) =>
+                                      WorkoutDetail(workout: workout),
                                 ),
                               );
                             },
                             child: Container(
-                              margin: EdgeInsets.only(
-                                bottom: 10,
+                              margin: const EdgeInsets.only(
+                                top: 10,
                                 left: 10,
                                 right: 10,
                               ),
-                              padding: EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: StandardData.backgroundColor1,
                                 borderRadius: BorderRadius.circular(20),
@@ -136,26 +236,14 @@ class _WorkoutState extends State<Workout> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "${index + 1}. ${visibleWorkouts[index]["name"]}",
-                                    style: TextStyle(
+                                    "${index + 1}. ${workout["name"]}",
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
                                     ),
                                   ),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(height: 5),
-                                      Text(
-                                        "Category: ${visibleWorkouts[index]["category"]}",
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                      Text(
-                                        "Equipment: ${visibleWorkouts[index]["equipment"] ?? "none"}",
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
+                                  Text("Category: ${workout["category"]}"),
+                                  Text(
+                                    "Equipment: ${workout["equipment"] ?? "none"}",
                                   ),
                                 ],
                               ),
@@ -163,21 +251,30 @@ class _WorkoutState extends State<Workout> {
                           );
                         },
                       ),
+
+                      // PAGINATION
                       Padding(
-                        padding: EdgeInsets.only(
-                          bottom: 30,
-                          left: MediaQuery.of(context).size.width * 0.3,
-                          right: MediaQuery.of(context).size.width * 0.3,
-                        ),
-                        child: TextButton(
-                          onPressed: () {
-                            fetchWorkouts();
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor: StandardData.primaryColor
-                                .withAlpha(200),
-                          ),
-                          child: Text("View More"),
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: prevPage,
+                              icon: const Icon(Icons.arrow_back),
+                            ),
+
+                            Text(
+                              "Page ${currentPage + 1} / $totalPages",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            IconButton(
+                              onPressed: nextPage,
+                              icon: const Icon(Icons.arrow_forward),
+                            ),
+                          ],
                         ),
                       ),
                     ],

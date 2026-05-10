@@ -8,6 +8,7 @@ import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fitness/firebase_notification.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void initOpenFoodFacts() {
   OpenFoodAPIConfiguration.userAgent = UserAgent(
@@ -23,6 +24,7 @@ void main() async {
   initOpenFoodFacts();
   await Firebase.initializeApp();
   await FirebaseNotification().initFCM();
+  await initializeDateFormatting();
   runApp(MyApp());
 }
 
