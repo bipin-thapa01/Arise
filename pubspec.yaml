@@ -50,6 +50,7 @@ dependencies:
   cached_network_image: ^3.4.1
   carousel_slider: ^5.1.2
   intl: ^0.20.2
+  date_field: ^6.0.3+1
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
@@ -84,6 +85,7 @@ flutter:
     - assets/user.png
     - assets/empty-list.png
     - assets/logo.png
+    - assets/no_events_empty_state.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

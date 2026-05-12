@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:date_field/date_field.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/Habits/habits.dart';
@@ -33,11 +34,11 @@ class _HomePageSkillState extends State<HomePageSkill> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Establish new habit",
+            "Events & Tasks",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           Text(
-            "Add new habit to level up!",
+            "Add new event or task!",
             style: TextStyle(fontSize: 10, color: Colors.grey),
           ),
           SizedBox(height: 10),
@@ -61,7 +62,7 @@ class _HomePageSkillState extends State<HomePageSkill> {
               backgroundColor: StandardData.primaryColor.withOpacity(0.5),
             ),
             child: Text(
-              "Add Habit",
+              "Add Event or Task",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -70,73 +71,66 @@ class _HomePageSkillState extends State<HomePageSkill> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Your current habits",
+                "Your current Events & Tasks",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              widget.data.isNotEmpty
-                  ? StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection("users")
-                          .doc(FirebaseAuth.instance.currentUser!.uid)
-                          .collection("habits")
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Text(
-                            "Fetching...",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          );
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return Text(
-                            "Empty Habits List!",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          );
-                        }
-
-                        final habits = snapshot.data!.docs;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ListView.builder(
-                              padding: EdgeInsets.only(top: 5, bottom: 10),
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: habits.length > 5 ? 5 : habits.length,
-                              itemBuilder: (context, index) {
-                                final habit =
-                                    habits[index].data()
-                                        as Map<String, dynamic>;
-
-                                return Text("${index + 1}. ${habit["name"]}");
-                              },
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Habits(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: StandardData.primaryColor
-                                    .withOpacity(0.5),
-                              ),
-                              child: Text("View all"),
-                            ),
-                          ],
-                        );
-                      },
-                    )
-                  : Text(
-                      "Empty Habits List!",
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection("users")
+                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .collection("eventsNRemainders")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text(
+                      "Fetching...",
                       style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Text(
+                      "Empty List!",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    );
+                  }
+
+                  final habits = snapshot.data!.docs;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListView.builder(
+                        padding: EdgeInsets.only(top: 5, bottom: 10),
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: habits.length > 5 ? 5 : habits.length,
+                        itemBuilder: (context, index) {
+                          final habit =
+                              habits[index].data() as Map<String, dynamic>;
+
+                          return Text(
+                            "${index + 1}. ${habit["name"]} (${habit["type"]})",
+                          );
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => Habits()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: StandardData.primaryColor
+                              .withOpacity(0.5),
+                        ),
+                        child: Text("View all"),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ],
@@ -157,7 +151,10 @@ class _AddNewHabitState extends State<AddNewHabit> {
   final storage = FlutterSecureStorage();
   final _key = GlobalKey<FormState>();
   final TextEditingController _habit = TextEditingController();
-  String selectedValue = "Daily";
+  String selectedSchedule = 'Does not Repeat';
+  DateTime selectedDate = DateTime.now();
+  String selectedType = "Event";
+  DateTime selectedTime = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -168,21 +165,24 @@ class _AddNewHabitState extends State<AddNewHabit> {
         User? user = FirebaseAuth.instance.currentUser;
         final String? id = user?.uid;
         try {
+          Map<String, dynamic> content = {
+            "name": habit,
+            "type": selectedType,
+            "createdAt": FieldValue.serverTimestamp(),
+            "frequency": selectedSchedule,
+            "eventDate": selectedSchedule == "Does not Repeat"
+                ? selectedDate
+                : selectedTime,
+          };
           await FirebaseFirestore.instance
               .collection("users")
               .doc(id)
-              .collection("habits")
-              .add({
-                "name": habit,
-                "createdAt": FieldValue.serverTimestamp(),
-                "frequency": selectedValue,
-                "currentStreak": 0,
-                "bestStreak": 0,
-                "lastCompleted": null,
-              });
+              .collection("eventsNRemainders")
+              .add(content);
           if (widget.onHabitAdded != null) {
             widget.onHabitAdded?.call(habit);
           }
+          StandardData.normalSnackbar(context, "Event or Task created!");
           Navigator.pop(context);
         } catch (e) {
           StandardData.errorSnackbar(context);
@@ -208,11 +208,11 @@ class _AddNewHabitState extends State<AddNewHabit> {
               height: 5,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: StandardData.primaryColor,
+                color: Colors.grey,
               ),
             ),
             Text(
-              "Add New Habit",
+              "Add New Event or Task",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Form(
@@ -224,7 +224,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Theme.of(context).primaryColor,
-                      hint: Text("New Habit"),
+                      label: Text("Enter Title"),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
@@ -241,8 +241,8 @@ class _AddNewHabitState extends State<AddNewHabit> {
                   SizedBox(height: 10),
                   DropdownButtonFormField2<String>(
                     isExpanded: true,
-                    hint: Text(selectedValue),
-                    items: ['Daily', 'Weekly', 'Monthly']
+                    hint: Text(selectedType),
+                    items: ['Event', 'Task']
                         .map(
                           (item) => DropdownItem<String>(
                             value: item,
@@ -261,7 +261,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                         .toList(),
                     onChanged: (value) {
                       setState(() {
-                        selectedValue = value!;
+                        selectedType = value!;
                       });
                     },
                     decoration: InputDecoration(border: InputBorder.none),
@@ -280,6 +280,94 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       elevation: 4,
                     ),
                   ),
+                  DropdownButtonFormField2<String>(
+                    isExpanded: true,
+                    hint: Text(selectedSchedule),
+                    items:
+                        [
+                              'Does not Repeat',
+                              'Daily',
+                              'Weekly',
+                              'Monthly',
+                              'Annually',
+                            ]
+                            .map(
+                              (item) => DropdownItem<String>(
+                                value: item,
+                                height: 40,
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSchedule = value!;
+                      });
+                    },
+                    decoration: InputDecoration(border: InputBorder.none),
+                    buttonStyleData: FormFieldButtonStyleData(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      maxHeight: 250,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  if (selectedSchedule == "Does not Repeat")
+                    DateTimeFormField(
+                      decoration: InputDecoration(
+                        labelText: "Select Event/Task Date & Time",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).primaryColor,
+                      ),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(Duration(days: 365)),
+                      onChanged: (DateTime? value) {
+                        setState(() {
+                          selectedDate = value ?? selectedDate;
+                        });
+                      },
+                    ),
+                  if (selectedSchedule != "Does not Repeat")
+                    DateTimeFormField(
+                      mode: DateTimeFieldPickerMode.time,
+                      decoration: InputDecoration(
+                        labelText: "Select Event/Task Time",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).primaryColor,
+                      ),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(Duration(days: 365)),
+                      onChanged: (DateTime? value) {
+                        setState(() {
+                          selectedTime = value ?? selectedDate;
+                        });
+                      },
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Row(
