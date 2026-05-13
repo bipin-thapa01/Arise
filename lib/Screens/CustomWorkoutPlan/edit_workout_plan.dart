@@ -135,7 +135,12 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
                                               ),
                                             ),
                                             IconButton(
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                StandardData.normalSnackbar(
+                                                  context,
+                                                  "feature not yet added!",
+                                                );
+                                              },
                                               iconSize: 16,
                                               style: IconButton.styleFrom(
                                                 padding: EdgeInsets.all(0),

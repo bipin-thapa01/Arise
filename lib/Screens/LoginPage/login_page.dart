@@ -10,14 +10,16 @@ class LoginPage extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            leading: IconButton(
-              onPressed: () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                }
-              },
-              icon: Icon(Icons.arrow_back_ios_new),
-            ),
+            leading: Navigator.canPop(context)
+                ? IconButton(
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: Icon(Icons.arrow_back_ios_new),
+                  )
+                : null,
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(100),
               child: Column(

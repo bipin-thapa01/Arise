@@ -28,7 +28,7 @@ class _HabitsState extends State<Habits> {
     final habitsDoc = await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
-        .collection("habits")
+        .collection("eventsNRemainders")
         .get();
     if (habitsDoc.docs.isNotEmpty) {
       setState(() {
@@ -37,10 +37,11 @@ class _HabitsState extends State<Habits> {
           habitsDoc.docs.map((doc) {
             return {
               "id": doc.id,
-              "bestStreak": doc.data()["bestStreak"],
-              "currentStreak": doc.data()['currentStreak'],
-              "name": doc.data()['name'],
-              "createdAt": doc.data()['createdAt'],
+              "createdAt": doc.data()["createdAt"],
+              "name": doc.data()["name"],
+              "type": doc.data()["type"],
+              "frequency": doc.data()["frequency"],
+              "eventDate": doc.data()["eventDate"],
             };
           }),
         );
@@ -53,38 +54,19 @@ class _HabitsState extends State<Habits> {
     if (user == null) return;
     final uid = user.uid;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("habits")
-          .doc(id)
-          .get();
-      DateTime lastCompleted = doc.data()!["lastCompleted"] != null
-          ? doc.data()!["lastCompleted"].toDate()
-          : DateTime.now().subtract(Duration(days: 1));
-      String lastCompletedDateOnly = lastCompleted.toIso8601String().split(
-        "T",
-      )[0];
-      DateTime today = DateTime.now();
-      String todayDateOnly = today.toIso8601String().split("T")[0];
-      if (lastCompletedDateOnly == todayDateOnly) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(uid)
-            .collection("dailyDetails")
-            .doc(todayDateOnly)
-            .update({"habitsCompleted": FieldValue.increment(-1)});
-      }
       await FirebaseFirestore.instance
           .collection("users")
           .doc(uid)
-          .collection("habits")
+          .collection("eventsNRemainders")
           .doc(id)
           .delete();
-
       setState(() {
         habits.removeWhere((item) => item['id'] == id);
       });
+      StandardData.normalSnackbar(
+        context,
+        "Task or Event deleted successfully!",
+      );
       Navigator.pop(context);
     } catch (e) {
       StandardData.errorSnackbar(context);
@@ -98,7 +80,7 @@ class _HabitsState extends State<Habits> {
         slivers: [
           SliverAppBar(
             title: Text(
-              "Habits",
+              "Events & Tasks",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
             ),
             titleSpacing: 0,
@@ -132,8 +114,12 @@ class _HabitsState extends State<Habits> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 10, right: 10),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Your habits"),
+                        Text(
+                          "Your events and tasks",
+                          style: TextStyle(color: Colors.grey),
+                        ),
                         ListView.builder(
                           padding: EdgeInsets.only(top: 20),
                           shrinkWrap: true,
@@ -195,7 +181,7 @@ class _HabitsState extends State<Habits> {
                                             builder: (context) {
                                               return AlertDialog(
                                                 title: Text(
-                                                  "Are you sure you want to delete the habit?",
+                                                  "Are you sure you want to delete the event or task?",
                                                   style: TextStyle(
                                                     fontSize: 14,
                                                   ),
@@ -246,7 +232,7 @@ class _HabitsState extends State<Habits> {
                                   Divider(),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 5.0),
-                                    child: Text("Streak"),
+                                    child: Text("Info"),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 5.0),
@@ -254,12 +240,12 @@ class _HabitsState extends State<Habits> {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "Current: ${habits[index]["currentStreak"]}",
+                                            "Type: ${habits[index]["type"]}",
                                           ),
                                         ),
                                         Expanded(
                                           child: Text(
-                                            "Highest: ${habits[index]["bestStreak"]}",
+                                            "Frequency: ${habits[index]["frequency"]}",
                                           ),
                                         ),
                                       ],
@@ -307,7 +293,7 @@ class _EditHabitState extends State<EditHabit> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Edited habit name cannot be empty!"),
+          content: Text("Edited name cannot be empty!"),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -330,20 +316,21 @@ class _EditHabitState extends State<EditHabit> {
       await FirebaseFirestore.instance
           .collection("users")
           .doc(uid)
-          .collection("habits")
+          .collection("eventsNRemainders")
           .doc(id)
           .update({"name": changedHabit});
       updatedText = changedHabit;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Habit successfully updated"),
+          content: Text("Task/Event successfully updated"),
           behavior: SnackBarBehavior.floating,
         ),
       );
       widget.updateHabit();
       Navigator.pop(context);
     } catch (e) {
-      StandardData.errorSnackbar(context);
+      Navigator.pop(context);
+      StandardData.normalSnackbar(context, e.toString());
     }
   }
 
@@ -372,7 +359,7 @@ class _EditHabitState extends State<EditHabit> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: StandardData.backgroundColor1,
-                      label: Text("Edit Habit"),
+                      label: Text("Edit Task/Event"),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
