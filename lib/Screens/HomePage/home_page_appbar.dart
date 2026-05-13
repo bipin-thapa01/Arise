@@ -38,15 +38,15 @@ class _HomePageAppbarState extends State<HomePageAppbar> {
           ),
         ],
       ),
-      actions: [
-        IconButton(
-          onPressed: () {},
-          icon: Icon(Icons.notifications_none),
-          // style: IconButton.styleFrom(
-          //   backgroundColor: StandardData.backgroundColor1,
-          // ),
-        ),
-      ],
+      // actions: [
+      //   IconButton(
+      //     onPressed: () {},
+      //     icon: Icon(Icons.notifications_none),
+      //     // style: IconButton.styleFrom(
+      //     //   backgroundColor: StandardData.backgroundColor1,
+      //     // ),
+      //   ),
+      // ],
     );
   }
 }

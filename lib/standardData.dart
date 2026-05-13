@@ -19,9 +19,12 @@ class StandardData {
   static const String baseUrl = "http://$homeIp:8080";
 
   static void errorSnackbar(final context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Error in execution! Try again")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error in execution! Try again"),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   static void normalSnackbar(final context, final String message) {

@@ -296,6 +296,24 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
     }
   }
 
+  Future<void> unmarkTaskComplete(String name) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("dailyDetails")
+          .doc(DateFormat('yyyy-MM-dd').format(widget.selectedDate))
+          .update({
+            "completedTask": FieldValue.arrayRemove([name]),
+          });
+      Navigator.pop(context);
+      areTaskCompleted();
+      StandardData.normalSnackbar(context, "Task unmarked successfully!");
+    } catch (e) {
+      StandardData.normalSnackbar(context, e.toString());
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -500,25 +518,55 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
                                       children: [
                                         widget.eventsAndTasks[index]["type"] ==
                                                 "Task"
-                                            ? TextButton(
-                                                onPressed: () {
-                                                  markTaskComplete(
+                                            ? completedTasksList.contains(
                                                     widget
                                                         .eventsAndTasks[index]["name"],
-                                                  );
-                                                },
-                                                style: TextButton.styleFrom(
-                                                  backgroundColor: StandardData
-                                                      .primaryColor
-                                                      .withAlpha(100),
-                                                ),
-                                                child: Text(
-                                                  "Mark Completed",
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              )
+                                                  )
+                                                  ? TextButton(
+                                                      onPressed: () {
+                                                        unmarkTaskComplete(
+                                                          widget
+                                                              .eventsAndTasks[index]["name"],
+                                                        );
+                                                      },
+                                                      style:
+                                                          TextButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.grey
+                                                                    .withAlpha(
+                                                                      100,
+                                                                    ),
+                                                          ),
+                                                      child: Text(
+                                                        "Unmark Completed",
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : TextButton(
+                                                      onPressed: () {
+                                                        markTaskComplete(
+                                                          widget
+                                                              .eventsAndTasks[index]["name"],
+                                                        );
+                                                      },
+                                                      style:
+                                                          TextButton.styleFrom(
+                                                            backgroundColor:
+                                                                StandardData
+                                                                    .primaryColor
+                                                                    .withAlpha(
+                                                                      100,
+                                                                    ),
+                                                          ),
+                                                      child: Text(
+                                                        "Mark Completed",
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    )
                                             : Container(),
                                         widget.eventsAndTasks[index]["type"] ==
                                                 "Task"

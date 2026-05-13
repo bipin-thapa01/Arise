@@ -10,6 +10,7 @@ import 'package:fitness/Screens/HomePage/home_page_notification.dart';
 import 'package:fitness/Screens/HomePage/home_page_skill.dart';
 import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
+import 'package:fitness/Screens/More/more.dart';
 import 'package:fitness/Screens/Progress/calendar.dart';
 import 'package:fitness/Screens/Settings/settings.dart' as st;
 import 'package:fitness/Screens/Workout/workout.dart';
@@ -246,12 +247,12 @@ class _HomePageState extends State<HomePage> {
             label: "Calendar",
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
+            icon: Icon(Icons.more_horiz_outlined),
             selectedIcon: Icon(
-              Icons.settings,
+              Icons.more_horiz,
               color: StandardData.primaryColor,
             ),
-            label: "Settings",
+            label: "More",
           ),
         ],
       ),
@@ -270,7 +271,7 @@ class _HomePageState extends State<HomePage> {
         ),
         Workout(),
         Calendar(),
-        st.Settings(),
+        More(),
       ][_selectedIndex],
     );
   }
