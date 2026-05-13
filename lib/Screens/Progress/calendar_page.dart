@@ -48,6 +48,17 @@ class _CalendarPageState extends State<CalendarPage> {
     setState(() {
       filteredEventsNTasks =
           eventsNTasks.where((event) {
+            DateTime createdDateTime = (event["createdAt"] as Timestamp)
+                .toDate();
+            DateTime createdDate = DateTime(
+              createdDateTime.year,
+              createdDateTime.month,
+              createdDateTime.day,
+            );
+            DateTime selectedDate = DateTime(date.year, date.month, date.day);
+            if (createdDate.isAfter(selectedDate)) {
+              return false;
+            }
             if (event["frequency"] == "Does not Repeat") {
               final eventDate = (event["eventDate"] as Timestamp)
                   .toDate()
@@ -142,7 +153,6 @@ class _CalendarPageState extends State<CalendarPage> {
               _selectedDate = date;
             });
             filterEventOrTask(date);
-            print(date);
           },
         ),
         Container(
@@ -157,13 +167,27 @@ class _CalendarPageState extends State<CalendarPage> {
           child: isFetching
               ? SpinKitThreeBounce(color: StandardData.primaryColor, size: 26)
               : filteredEventsNTasks.isEmpty
-              ? Center(
-                  child: Image.asset(
-                    "assets/no_events_empty_state.png",
-                    opacity: const AlwaysStoppedAnimation<double>(2),
-                  ),
-                )
-              : EventsAndTasksWidget(eventsAndTasks: filteredEventsNTasks),
+              ? _selectedDate.isBefore(DateTime.now())
+                    ? Center(
+                        child: Text(
+                          "No Event or Task available!",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Image.asset(
+                          "assets/no_events_empty_state.png",
+                          opacity: const AlwaysStoppedAnimation<double>(2),
+                        ),
+                      )
+              : EventsAndTasksWidget(
+                  eventsAndTasks: filteredEventsNTasks,
+                  selectedDate: _selectedDate,
+                ),
         ),
       ],
     );
@@ -172,50 +196,128 @@ class _CalendarPageState extends State<CalendarPage> {
 
 class EventsAndTasksWidget extends StatefulWidget {
   final List<Map<String, dynamic>> eventsAndTasks;
-  const EventsAndTasksWidget({super.key, required this.eventsAndTasks});
+  final DateTime selectedDate;
+
+  const EventsAndTasksWidget({
+    super.key,
+    required this.eventsAndTasks,
+    required this.selectedDate,
+  });
 
   @override
   State<EventsAndTasksWidget> createState() => _EventsAndTasksWidgetState();
 }
 
 class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
+  int totalEvents = 0;
+  int completedEvents = 0;
+  int upcomingEvents = 0;
+  List<dynamic> completedTasksList = [];
+
+  void setComplete() {}
+
+  void setUpcoming() {
+    upcomingEvents = 0;
+    final DateTime now = DateTime.now();
+    final nowDate = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(
+      widget.selectedDate.year,
+      widget.selectedDate.month,
+      widget.selectedDate.day,
+    );
+    if (nowDate.isAfter(selectedDate)) {
+      upcomingEvents = 0;
+      return;
+    } else if (nowDate.isBefore(selectedDate)) {
+      upcomingEvents = widget.eventsAndTasks.length;
+      return;
+    }
+    final nowMinutes = now.hour * 60 + now.minute;
+    widget.eventsAndTasks.forEach((event) {
+      final eventDate = (event["eventDate"] as Timestamp).toDate();
+      final eventMinutes = eventDate.hour * 60 + eventDate.minute;
+      if (eventMinutes > nowMinutes) {
+        upcomingEvents++;
+      }
+    });
+  }
+
+  Future<void> areTaskCompleted() async {
+    try {
+      final dailyDetailsDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("dailyDetails")
+          .doc(DateFormat("yyyy-MM-dd").format(widget.selectedDate))
+          .get();
+      final dailyDetails = dailyDetailsDoc.data();
+      setState(() {
+        completedTasksList =
+            dailyDetails != null && dailyDetails.containsKey("completedTask")
+            ? List.from(dailyDetails["completedTask"])
+            : [];
+      });
+      print(completedTasksList);
+    } catch (e) {
+      StandardData.normalSnackbar(context, e.toString());
+    }
+  }
+
+  Future<void> markTaskComplete(String name) async {
+    final selectedDateOnly = DateTime(
+      widget.selectedDate.year,
+      widget.selectedDate.month,
+      widget.selectedDate.day,
+    );
+    final now = DateTime.now();
+    final nowDateOnly = DateTime(now.year, now.month, now.day);
+    if (selectedDateOnly.isAfter(nowDateOnly)) {
+      StandardData.normalSnackbar(
+        context,
+        "Task of future cannot be mark as completed",
+      );
+      Navigator.pop(context);
+      return;
+    }
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("dailyDetails")
+          .doc(DateFormat('yyyy-MM-dd').format(widget.selectedDate))
+          .update({
+            "completedTask": FieldValue.arrayUnion([name]),
+          });
+      areTaskCompleted();
+      StandardData.normalSnackbar(context, "Task has been marked as completed");
+      Navigator.pop(context);
+    } catch (e) {
+      StandardData.normalSnackbar(context, e.toString());
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    areTaskCompleted();
+  }
+
+  @override
+  void didUpdateWidget(covariant EventsAndTasksWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.eventsAndTasks != widget.eventsAndTasks ||
+        oldWidget.selectedDate != widget.selectedDate) {
+      setState(() {
+        setUpcoming();
+        areTaskCompleted();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    int totalEvents = widget.eventsAndTasks.length;
-    int completedEvents = 0;
-    int upcomingEvents = 0;
-
-    void setComplete() {}
-
-    void setUpcoming() {
-      print(widget.eventsAndTasks);
-      final DateTime now = DateTime.now();
-      final nowMinutes = now.hour * 60 + now.minute;
-      widget.eventsAndTasks.forEach((event) {
-        final eventDate = (event["eventDate"] as Timestamp).toDate();
-        final eventMinutes = eventDate.hour * 60 + eventDate.minute;
-        if (eventMinutes > nowMinutes) {
-          upcomingEvents++;
-        }
-      });
-      print(widget.eventsAndTasks);
-      print(widget.eventsAndTasks.length);
-    }
-
-    @override
-    void initState() {
-      super.initState();
-      setUpcoming();
-    }
-
-    Future<void> markTaskComplete(String name) async {
-      //   try{
-      //
-      //     await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("dailyDetails").update({
-      //
-      //     });
-      //   }
-    }
+    totalEvents = widget.eventsAndTasks.length;
 
     return Column(
       children: [
@@ -331,6 +433,28 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
                                       ),
                                     ),
                                     SizedBox(width: 10),
+                                    completedTasksList.contains(
+                                          widget.eventsAndTasks[index]["name"],
+                                        )
+                                        ? Container(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 5,
+                                              horizontal: 8,
+                                            ),
+                                            margin: EdgeInsets.only(right: 4),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: Colors.redAccent.withAlpha(
+                                                100,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              "Completed",
+                                              style: TextStyle(fontSize: 10),
+                                            ),
+                                          )
+                                        : Container(),
                                     Container(
                                       padding: EdgeInsets.symmetric(
                                         vertical: 5,
@@ -374,24 +498,32 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
                                     SizedBox(height: 10),
                                     Row(
                                       children: [
-                                        TextButton(
-                                          onPressed: () {
-                                            markTaskComplete(
-                                              widget
-                                                  .eventsAndTasks[index]["name"],
-                                            );
-                                          },
-                                          style: TextButton.styleFrom(
-                                            backgroundColor: StandardData
-                                                .primaryColor
-                                                .withAlpha(100),
-                                          ),
-                                          child: Text(
-                                            "Mark Completed",
-                                            style: TextStyle(fontSize: 12),
-                                          ),
-                                        ),
-                                        SizedBox(width: 20),
+                                        widget.eventsAndTasks[index]["type"] ==
+                                                "Task"
+                                            ? TextButton(
+                                                onPressed: () {
+                                                  markTaskComplete(
+                                                    widget
+                                                        .eventsAndTasks[index]["name"],
+                                                  );
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  backgroundColor: StandardData
+                                                      .primaryColor
+                                                      .withAlpha(100),
+                                                ),
+                                                child: Text(
+                                                  "Mark Completed",
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              )
+                                            : Container(),
+                                        widget.eventsAndTasks[index]["type"] ==
+                                                "Task"
+                                            ? SizedBox(width: 20)
+                                            : Container(),
                                         TextButton(
                                           onPressed: () {
                                             Navigator.pop(context);
@@ -435,6 +567,29 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  completedTasksList.contains(
+                                        widget.eventsAndTasks[index]["name"],
+                                      )
+                                      ? Container(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 5,
+                                            horizontal: 8,
+                                          ),
+                                          margin: EdgeInsets.only(right: 4),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            color: Colors.redAccent.withAlpha(
+                                              100,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            "Completed",
+                                            style: TextStyle(fontSize: 10),
+                                          ),
+                                        )
+                                      : Container(),
                                   Container(
                                     padding: EdgeInsets.symmetric(
                                       vertical: 5,
