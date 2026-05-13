@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
+import 'package:fitness/Screens/splash_screen.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
@@ -76,11 +77,7 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.grey,
       ),
       debugShowCheckedModeBanner: false,
-      home: isFetching
-          ? Loading()
-          : isLogin
-          ? HomePage()
-          : LoginPage(),
+      home: SplashScreen(),
     );
   }
 }
