@@ -13,21 +13,6 @@ class HomePageCalorie extends StatefulWidget {
 }
 
 class _HomePageCalorieState extends State<HomePageCalorie> {
-  List<String> months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   DateTime now = DateTime.now();
 
   @override
@@ -87,18 +72,14 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "${months[now.month - 1]} ${now.day}, ${now.year}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
                   color: StandardData.backgroundColor1,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: StandardData.borderStrong,
+                    width: 1,
+                  ),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(15),

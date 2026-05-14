@@ -152,7 +152,7 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                           },
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: StandardData.buttonColor1,
+                            fillColor: StandardData.backgroundColor2,
                             labelText: data["name"],
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
