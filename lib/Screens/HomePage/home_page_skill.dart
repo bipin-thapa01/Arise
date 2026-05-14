@@ -25,55 +25,40 @@ class _HomePageSkillState extends State<HomePageSkill> {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(top: 10, left: 10, right: 10),
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: StandardData.backgroundColor1,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      padding: EdgeInsets.only(top: 10, left: 10, right: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Events & Tasks",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-          Text(
-            "Add new event or task!",
-            style: TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-          SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () {
-              showModalBottomSheet(
-                isScrollControlled: true,
-                context: context,
-                builder: (context) {
-                  return AddNewHabit(
-                    onHabitAdded: (newHabit) {
-                      setState(() {
-                        widget.data.add({"name": newHabit, "currentStreak": 0});
-                      });
-                    },
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  "Events & Tasks",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Habits()),
                   );
                 },
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: StandardData.primaryColor.withOpacity(0.5),
-            ),
-            child: Text(
-              "Add Event or Task",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+                child: Text(
+                  "View all",
+                  style: TextStyle(
+                    color: StandardData.primaryColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Divider(color: Colors.grey[800], thickness: 1),
+          SizedBox(height: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Your current Events & Tasks",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection("users")
@@ -89,9 +74,81 @@ class _HomePageSkillState extends State<HomePageSkill> {
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Text(
-                      "Empty List!",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Empty List!",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        SizedBox(height: 10),
+                        Container(
+                          padding: EdgeInsetsGeometry.all(10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: StandardData.backgroundColor1,
+                            border: Border.all(
+                              width: 1,
+                              color: StandardData.borderStrong,
+                            ),
+                          ),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (context) {
+                                  return AddNewHabit(
+                                    onHabitAdded: (newHabit) {
+                                      setState(() {
+                                        widget.data.add({
+                                          "name": newHabit,
+                                          "currentStreak": 0,
+                                        });
+                                      });
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: StandardData.purpleTint,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.calendar_today_outlined,
+                                    color: StandardData.primaryColor,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Add Event or Task",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      "Create your own custom schedule",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: StandardData.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   }
 
@@ -101,7 +158,7 @@ class _HomePageSkillState extends State<HomePageSkill> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ListView.builder(
-                        padding: EdgeInsets.only(top: 5, bottom: 10),
+                        padding: EdgeInsets.only(top: 5),
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         itemCount: habits.length > 5 ? 5 : habits.length,
@@ -109,23 +166,106 @@ class _HomePageSkillState extends State<HomePageSkill> {
                           final habit =
                               habits[index].data() as Map<String, dynamic>;
 
-                          return Text(
-                            "${index + 1}. ${habit["name"]} (${habit["type"]})",
+                          return Container(
+                            padding: EdgeInsetsGeometry.all(10),
+                            margin: EdgeInsets.only(bottom: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: StandardData.backgroundColor1,
+                              border: Border.all(
+                                width: 1,
+                                color: StandardData.borderStrong,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(habit["name"])),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: habit["type"] == "Task"
+                                        ? StandardData.purpleTint
+                                        : StandardData.amberTint,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    habit["type"],
+                                    style: TextStyle(
+                                      color: habit["type"] == "Task"
+                                          ? StandardData.primaryColor
+                                          : StandardData.amberColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => Habits()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: StandardData.primaryColor
-                              .withOpacity(0.5),
+                      Container(
+                        padding: EdgeInsetsGeometry.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: StandardData.backgroundColor1,
+                          border: Border.all(
+                            width: 1,
+                            color: StandardData.borderStrong,
+                          ),
                         ),
-                        child: Text("View all"),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) {
+                                return AddNewHabit(
+                                  onHabitAdded: (newHabit) {
+                                    setState(() {
+                                      widget.data.add({
+                                        "name": newHabit,
+                                        "currentStreak": 0,
+                                      });
+                                    });
+                                  },
+                                );
+                              },
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: StandardData.purpleTint,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: StandardData.primaryColor,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Add Event or Task",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Create your own custom schedule",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: StandardData.secondaryTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -223,7 +363,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                     controller: _habit,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Theme.of(context).primaryColor,
+                      fillColor: StandardData.backgroundColor1,
                       label: Text("Enter Title"),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -269,7 +409,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       height: 50,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: Theme.of(context).primaryColor,
+                        color: StandardData.backgroundColor1,
                       ),
                     ),
                     dropdownStyleData: DropdownStyleData(
@@ -317,7 +457,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                       height: 50,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: Theme.of(context).primaryColor,
+                        color: StandardData.backgroundColor1,
                       ),
                     ),
                     dropdownStyleData: DropdownStyleData(
@@ -338,7 +478,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).primaryColor,
+                        fillColor: StandardData.backgroundColor1,
                       ),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(Duration(days: 365)),

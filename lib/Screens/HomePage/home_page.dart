@@ -312,10 +312,10 @@ class _HomePageQRPopupState extends State<HomePageQRPopup> {
         'key2': 'Add Meal',
         'value2': Icon(Icons.add, color: StandardData.iconColor2),
         'onTap1': () {
-          print("Scan Meal");
+          StandardData.normalSnackbar(context, "feature not added yet");
         },
         'onTap2': () {
-          print("Add Meal");
+          StandardData.normalSnackbar(context, "feature not added yet");
         },
       },
     ];

@@ -1,11 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
-import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/Screens/splash_screen.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
-import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fitness/firebase_notification.dart';
@@ -75,6 +73,16 @@ class _MyAppState extends State<MyApp> {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.grey,
+        scaffoldBackgroundColor: StandardData.mainBackground,
+        appBarTheme: AppBarTheme(
+          backgroundColor: StandardData.mainBackground,
+          surfaceTintColor: Colors.transparent,
+        ),
+        colorScheme: ColorScheme.dark(
+          surface: StandardData.mainBackground,
+          background: StandardData.mainBackground,
+          primary: Colors.white,
+        ),
       ),
       debugShowCheckedModeBanner: false,
       home: SplashScreen(),

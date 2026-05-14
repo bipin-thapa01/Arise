@@ -16,8 +16,8 @@ class _HomePageNotificationState extends State<HomePageNotification> {
   DateTime now = DateTime.now();
   bool noWorkoutToday = false;
   String? activeWorkoutPlan;
-  List<String> days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  late String today = days[now.weekday % 7];
+  late String today = StandardData.days[now.weekday % 7];
+  late String todayFull = StandardData.daysFull[now.weekday % 7];
   Stream<Map<String, dynamic>> getCombinedStream() {
     final workoutPlanStream = FirebaseFirestore.instance
         .collection("users")
@@ -72,31 +72,102 @@ class _HomePageNotificationState extends State<HomePageNotification> {
 
         final workouts = activeWorkoutPlan["workouts"];
 
+        print(workouts);
+        print(today);
+
         final todayWorkouts = workouts.firstWhere(
           (workout) => workout["dayName"] == today,
           orElse: () => {},
         );
 
+        print(todayWorkouts);
+
         return Container(
           margin: EdgeInsets.only(left: 10, right: 10, top: 10),
-          padding: EdgeInsets.all(10),
           width: MediaQuery.of(context).size.width,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: StandardData.backgroundColor1,
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Workout Notification",
+                "Today\'s Workout",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              Text("Plan: $activePlan"),
-              Text("Day: $today"),
-              todayWorkouts.isEmpty
-                  ? Text("Rest Day 😴")
-                  : TextButton(
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsetsGeometry.symmetric(
+                  vertical: 5,
+                  horizontal: 8,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(width: 1, color: StandardData.tealColor),
+                  borderRadius: BorderRadius.circular(20),
+                  color: StandardData.tealTint,
+                ),
+                child: Text(
+                  "$todayFull . $activePlan",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: StandardData.tealColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsetsGeometry.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 1,
+                    color: StandardData.borderStrong,
+                  ),
+                  color: StandardData.backgroundColor1,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsetsGeometry.all(15),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: StandardData.purpleTint,
+                      ),
+                      child: Icon(
+                        Icons.fitness_center,
+                        color: StandardData.iconColor3,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "$activePlan",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          todayWorkouts.isEmpty
+                              ? Text(
+                                  "Rest Day . No Workout Today",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: StandardData.secondaryTextColor,
+                                  ),
+                                )
+                              : Text(
+                                  "$todayFull session. Tap to view workouts",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: StandardData.secondaryTextColor,
+                                  ),
+                                ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -110,12 +181,22 @@ class _HomePageNotificationState extends State<HomePageNotification> {
                         );
                       },
                       style: TextButton.styleFrom(
-                        backgroundColor: StandardData.primaryColor.withAlpha(
-                          100,
+                        backgroundColor: StandardData.purpleTint,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text("View Today Workout"),
+                      child: Text(
+                        "View >",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: StandardData.primaryColor,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+              ),
             ],
           ),
         );

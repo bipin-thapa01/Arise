@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fitness/standardData.dart';
 
 class HomePageAppbar extends StatefulWidget {
   final data;
@@ -11,12 +11,27 @@ class HomePageAppbar extends StatefulWidget {
 }
 
 class _HomePageAppbarState extends State<HomePageAppbar> {
+  List<String> months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  DateTime now = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
-      pinned: true,
+      pinned: false,
       scrolledUnderElevation: 0,
-      backgroundColor: Theme.of(context).primaryColor,
       automaticallyImplyLeading: false,
       title: Row(
         spacing: 10,
@@ -32,12 +47,22 @@ class _HomePageAppbarState extends State<HomePageAppbar> {
               ),
             ),
           ),
-          Text(
-            "Welcome, ${widget.data?['name']}",
-            style: TextStyle(fontSize: 18),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Welcome, ${widget.data?['name']}",
+                style: TextStyle(fontSize: 18),
+              ),
+              Text(
+                "${months[now.month - 1]} ${now.day}, ${now.year}",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
           ),
         ],
       ),
+
       // actions: [
       //   IconButton(
       //     onPressed: () {},

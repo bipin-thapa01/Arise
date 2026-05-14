@@ -15,11 +15,6 @@ class _HomePageLogState extends State<HomePageLog> {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(left: 10, right: 10, top: 10),
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: StandardData.backgroundColor1,
-        borderRadius: BorderRadius.circular(20),
-      ),
       child: Row(
         spacing: 10,
         children: [
@@ -34,8 +29,12 @@ class _HomePageLogState extends State<HomePageLog> {
               child: Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: StandardData.backgroundColor2,
+                  color: StandardData.backgroundColor1,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 1,
+                    color: StandardData.borderStrong,
+                  ),
                 ),
                 child: Column(
                   spacing: 5,
@@ -65,8 +64,12 @@ class _HomePageLogState extends State<HomePageLog> {
               child: Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: StandardData.backgroundColor2,
+                  color: StandardData.backgroundColor1,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 1,
+                    color: StandardData.borderStrong,
+                  ),
                 ),
                 child: Column(
                   spacing: 5,
