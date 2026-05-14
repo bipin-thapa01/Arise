@@ -23,24 +23,29 @@ class _EditWorkoutPlanState extends State<EditWorkoutPlan> {
   }
 
   Future<void> _fetchWorkouts() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
     final workoutPlanDocs = await FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(uid)
         .collection("customWorkouts")
         .get();
+
     final userDoc = await FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(uid)
         .get();
-    activePlanName = userDoc.data()!["activeWorkoutPlan"];
+
+    final data = userDoc.data();
+    activePlanName = (data != null && data.containsKey("activeWorkoutPlan"))
+        ? data["activeWorkoutPlan"] ?? ""
+        : "";
 
     setState(() {
       isPlanFetched = true;
-      workoutPlans = workoutPlanDocs.docs.map((doc) {
-        return doc.data();
-      }).toList();
+      workoutPlans = workoutPlanDocs.docs.map((doc) => doc.data()).toList();
     });
-    print(workoutPlans);
   }
 
   Future<void> _deleteWorkoutPlan(String planName) async {

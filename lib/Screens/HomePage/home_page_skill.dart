@@ -3,6 +3,7 @@ import 'package:date_field/date_field.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/Habits/habits.dart';
+import 'package:fitness/notification_service.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -24,8 +25,8 @@ class _HomePageSkillState extends State<HomePageSkill> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 10, left: 10, right: 10),
-      padding: EdgeInsets.only(top: 10, left: 10, right: 10),
+      margin: EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 10),
+      padding: EdgeInsets.only(left: 10, right: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -217,6 +218,7 @@ class _HomePageSkillState extends State<HomePageSkill> {
                           onTap: () {
                             showModalBottomSheet(
                               context: context,
+                              isScrollControlled: true,
                               builder: (context) {
                                 return AddNewHabit(
                                   onHabitAdded: (newHabit) {
@@ -314,7 +316,7 @@ class _AddNewHabitState extends State<AddNewHabit> {
                 ? selectedDate
                 : selectedTime,
           };
-          await FirebaseFirestore.instance
+          DocumentReference ref = await FirebaseFirestore.instance
               .collection("users")
               .doc(id)
               .collection("eventsNRemainders")

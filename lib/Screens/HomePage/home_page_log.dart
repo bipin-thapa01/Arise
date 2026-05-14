@@ -14,7 +14,7 @@ class _HomePageLogState extends State<HomePageLog> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left: 10, right: 10, top: 10),
+      margin: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
       child: Row(
         spacing: 10,
         children: [

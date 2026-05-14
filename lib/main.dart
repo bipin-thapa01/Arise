@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/Screens/splash_screen.dart';
+import 'package:fitness/notification_service.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
@@ -24,6 +25,7 @@ void main() async {
   await Firebase.initializeApp();
   await FirebaseNotification().initFCM();
   await initializeDateFormatting();
+  // await NotificationService.instance.initNotification();
   runApp(MyApp());
 }
 
