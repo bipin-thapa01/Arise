@@ -46,6 +46,9 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _fetch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkAppVersion(context);
+    });
   }
 
   @override

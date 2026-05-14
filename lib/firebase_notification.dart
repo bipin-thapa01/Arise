@@ -10,10 +10,12 @@ class FirebaseNotification {
     var token = await msgService.getToken();
     FirebaseMessaging.onBackgroundMessage(handleNotification);
     FirebaseMessaging.onMessage.listen(handleNotification);
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"fcmToken": token});
+    if (FirebaseAuth.instance.currentUser != null) {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update({"fcmToken": token});
+    }
   }
 }
 

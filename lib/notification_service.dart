@@ -1,98 +1,97 @@
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-// import 'package:timezone/data/latest.dart' as tz;
-// import 'package:timezone/timezone.dart' as tz;
-//
-// class NotificationService {
-//   static final NotificationService instance = NotificationService._internal();
-//
-//   factory NotificationService() {
-//     return instance;
-//   }
-//
-//   NotificationService._internal();
-//
-//   final FlutterLocalNotificationsPlugin notificationsPlugin =
-//       FlutterLocalNotificationsPlugin();
-//
-//   Future<void> initNotification() async {
-//     const AndroidInitializationSettings androidInitializationSettings =
-//         AndroidInitializationSettings('@mipmap/ic_launcher');
-//
-//     const InitializationSettings initializationSettings =
-//         InitializationSettings(android: androidInitializationSettings);
-//
-//     await notificationsPlugin.initialize(settings: initializationSettings);
-//
-//     tz.initializeTimeZones();
-//   }
-//
-//   Future<void> scheduleNotification({
-//     required int id,
-//     required String title,
-//     required String body,
-//     required DateTime scheduledDate,
-//   }) async {
-//     await notificationsPlugin.zonedSchedule(
-//       id: id,
-//       title: title,
-//       body: body,
-//       scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
-//       notificationDetails: const NotificationDetails(
-//         android: AndroidNotificationDetails(
-//           'task_channel',
-//           'Task Notifications',
-//           channelDescription: 'Notification for tasks and events',
-//           importance: Importance.max,
-//           priority: Priority.high,
-//         ),
-//       ),
-//       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-//     );
-//   }
-//
-//   Future<void> scheduleDailyNotification({
-//     required int id,
-//     required String title,
-//     required String body,
-//     required DateTime time,
-//   }) async {
-//     final now = DateTime.now();
-//
-//     DateTime scheduledDate = DateTime(
-//       now.year,
-//       now.month,
-//       now.day,
-//       time.hour,
-//       time.minute,
-//     );
-//
-//     if (scheduledDate.isBefore(now)) {
-//       scheduledDate = scheduledDate.add(const Duration(days: 1));
-//     }
-//
-//     await notificationsPlugin.zonedSchedule(
-//       id: id,
-//       title: title,
-//       body: body,
-//       scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
-//       notificationDetails: const NotificationDetails(
-//         android: AndroidNotificationDetails(
-//           'daily_channel',
-//           'Daily Notifications',
-//           importance: Importance.max,
-//           priority: Priority.high,
-//         ),
-//       ),
-//       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-//       matchDateTimeComponents: DateTimeComponents.time,
-//     );
-//   }
-//
-//   Future<void> cancelNotification(int id) async {
-//     await notificationsPlugin.cancel(id: id);
-//   }
-//
-//   Future<void> cancelAllNotifications() async {
-//     await notificationsPlugin.cancelAll();
-//   }
-// }
+import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+final FlutterLocalNotificationsPlugin localNotifs =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> initNotifications() async {
+  const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const settings = InitializationSettings(android: android);
+  await localNotifs.initialize(settings: settings);
+}
+
+Future<void> checkAppVersion(BuildContext context) async {
+  final remoteConfig = FirebaseRemoteConfig.instance;
+  await remoteConfig.setConfigSettings(
+    RemoteConfigSettings(
+      fetchTimeout: const Duration(seconds: 10),
+      minimumFetchInterval: const Duration(hours: 1),
+    ),
+  );
+  await remoteConfig.fetchAndActivate();
+
+  final latestVersion = remoteConfig.getString("latestVersion");
+
+  final packageInfo = await PackageInfo.fromPlatform();
+  final currentVersion = packageInfo.version;
+
+  if (_isOutdated(currentVersion, latestVersion)) {
+    await _showUpdateNotification();
+    if (context.mounted) {
+      _showUpdateDialog(context);
+    }
+  }
+}
+
+Future<void> _showUpdateNotification() async {
+  const details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'update_channel',
+      'App Updates',
+      channelDescription: 'Notifications for app updates',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+  );
+
+  await localNotifs.show(
+    id: 0,
+    title: 'Update Available 🎉',
+    body: 'A new version of the app is available. Please update!',
+    notificationDetails: details,
+  );
+}
+
+void _showUpdateDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: const Text('Update Available 🎉'),
+      content: const Text(
+        'A new version of the app is available. '
+        'Please update to continue using the app.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Later'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            launchUrl(
+              Uri.parse("https://github.com/bipin-thapa01/Arise/releases"),
+            );
+          },
+          child: const Text('Update Now'),
+        ),
+      ],
+    ),
+  );
+}
+
+bool _isOutdated(String current, String latest) {
+  final c = current.split(".").map(int.parse).toList();
+  final l = latest.split(".").map(int.parse).toList();
+  for (int i = 0; i < l.length; i++) {
+    final cv = i < c.length ? c[i] : 0;
+    final lv = l[i];
+    if (cv < lv) return true;
+    if (cv > lv) return false;
+  }
+  return false;
+}
