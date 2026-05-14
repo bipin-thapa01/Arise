@@ -83,7 +83,7 @@ class _HomePageNotificationState extends State<HomePageNotification> {
         print(todayWorkouts);
 
         return Container(
-          margin: EdgeInsets.only(left: 10, right: 10, top: 10),
+          margin: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
           width: MediaQuery.of(context).size.width,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

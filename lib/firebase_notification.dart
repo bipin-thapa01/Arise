@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class FirebaseNotification {
@@ -6,10 +8,12 @@ class FirebaseNotification {
   initFCM() async {
     await msgService.requestPermission();
     var token = await msgService.getToken();
-    print("Token: $token");
-
     FirebaseMessaging.onBackgroundMessage(handleNotification);
     FirebaseMessaging.onMessage.listen(handleNotification);
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .update({"fcmToken": token});
   }
 }
 
