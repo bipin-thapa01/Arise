@@ -167,33 +167,39 @@ class _HomePageNotificationState extends State<HomePageNotification> {
                         ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TodayWorkoutPlan(
-                              todayWorkout: (todayWorkouts["exercises"] as List)
-                                  .map((e) => Map<String, String>.from(e))
-                                  .toList(),
+                    todayWorkouts.isNotEmpty
+                        ? TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TodayWorkoutPlan(
+                                    todayWorkout:
+                                        (todayWorkouts["exercises"] as List)
+                                            .map(
+                                              (e) =>
+                                                  Map<String, String>.from(e),
+                                            )
+                                            .toList(),
+                                  ),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: StandardData.purpleTint,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: StandardData.purpleTint,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        "View >",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: StandardData.primaryColor,
-                        ),
-                      ),
-                    ),
+                            child: Text(
+                              "View >",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: StandardData.primaryColor,
+                              ),
+                            ),
+                          )
+                        : Container(),
                   ],
                 ),
               ),
