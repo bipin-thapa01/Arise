@@ -173,16 +173,12 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                       for (int i = 1; i <= numberOfDays; i++)
                         Container(
                           width: MediaQuery.of(context).size.width,
-                          margin: EdgeInsets.only(
-                            bottom: 10,
-                            left: 10,
-                            right: 10,
-                          ),
+                          margin: EdgeInsets.only(bottom: 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text("For Day $i"),
-                              SizedBox(height: 8),
+                              SizedBox(height: 15),
                               DropdownButtonFormField2(
                                 decoration: InputDecoration(
                                   hintText: customWorkouts[i - 1]["dayName"],
@@ -228,6 +224,7 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                                   });
                                 },
                               ),
+                              SizedBox(height: 10),
                               TextButton(
                                 onPressed: () {
                                   showModalBottomSheet(
@@ -276,7 +273,7 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                                     ],
                                   ),
                                 ),
-                              Divider(),
+                              Divider(color: StandardData.borderStrong),
                             ],
                           ),
                         ),
