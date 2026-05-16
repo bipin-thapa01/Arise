@@ -129,7 +129,7 @@ class _HabitsState extends State<Habits> {
                             return Container(
                               margin: EdgeInsets.only(bottom: 20),
                               padding: EdgeInsets.only(
-                                top: 10,
+                                top: 15,
                                 bottom: 15,
                                 left: 12,
                                 right: 12,
@@ -137,12 +137,40 @@ class _HabitsState extends State<Habits> {
                               decoration: BoxDecoration(
                                 color: StandardData.backgroundColor1,
                                 borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  width: 1,
+                                  color: StandardData.borderStrong,
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
+                                      Container(
+                                        padding: EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            width: 1,
+                                            color: index % 2 == 0
+                                                ? StandardData.primaryColor
+                                                : StandardData.amberColor,
+                                          ),
+                                          color: index % 2 == 0
+                                              ? StandardData.purpleTint
+                                              : StandardData.amberTint,
+                                        ),
+                                        child: Icon(
+                                          Icons.event,
+                                          color: index % 2 == 0
+                                              ? StandardData.primaryColor
+                                              : StandardData.amberColor,
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           habits[index]["name"],
@@ -152,8 +180,8 @@ class _HabitsState extends State<Habits> {
                                           ),
                                         ),
                                       ),
-                                      IconButton(
-                                        onPressed: () {
+                                      GestureDetector(
+                                        onTap: () {
                                           showModalBottomSheet(
                                             isScrollControlled: true,
                                             context: context,
@@ -170,12 +198,28 @@ class _HabitsState extends State<Habits> {
                                             },
                                           );
                                         },
-                                        icon: Icon(Icons.edit),
-                                        iconSize: 16,
-                                        padding: EdgeInsets.all(0),
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              width: 1,
+                                              color: StandardData.borderStrong,
+                                            ),
+                                            color: StandardData.purpleTint,
+                                          ),
+                                          child: Icon(
+                                            Icons.edit,
+                                            size: 16,
+                                            color: StandardData.primaryColor,
+                                          ),
+                                        ),
                                       ),
-                                      IconButton(
-                                        onPressed: () {
+                                      SizedBox(width: 5),
+                                      GestureDetector(
+                                        onTap: () {
                                           showDialog(
                                             context: context,
                                             builder: (context) {
@@ -223,29 +267,77 @@ class _HabitsState extends State<Habits> {
                                             },
                                           );
                                         },
-                                        iconSize: 16,
-                                        padding: EdgeInsets.all(0),
-                                        icon: Icon(Icons.delete),
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              width: 1,
+                                              color: StandardData.borderStrong,
+                                            ),
+                                            color: StandardData.amberTint,
+                                          ),
+                                          child: Icon(
+                                            Icons.delete,
+                                            size: 16,
+                                            color: StandardData.amberColor,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  Divider(),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 5.0),
-                                    child: Text("Info"),
-                                  ),
+                                  Divider(color: StandardData.borderStrong),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 5.0),
                                     child: Row(
                                       children: [
-                                        Expanded(
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            color: index % 2 == 0
+                                                ? StandardData.purpleTint
+                                                : StandardData.amberTint,
+                                          ),
                                           child: Text(
-                                            "Type: ${habits[index]["type"]}",
+                                            "${habits[index]["type"]}",
+                                            style: TextStyle(
+                                              color: index % 2 == 0
+                                                  ? StandardData.primaryColor
+                                                  : StandardData.amberColor,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
-                                        Expanded(
+                                        SizedBox(width: 10),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            color: index % 2 == 0
+                                                ? StandardData.purpleTint
+                                                : StandardData.amberTint,
+                                          ),
                                           child: Text(
-                                            "Frequency: ${habits[index]["frequency"]}",
+                                            "${habits[index]["frequency"]}",
+                                            style: TextStyle(
+                                              color: index % 2 == 0
+                                                  ? StandardData.primaryColor
+                                                  : StandardData.amberColor,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                       ],
