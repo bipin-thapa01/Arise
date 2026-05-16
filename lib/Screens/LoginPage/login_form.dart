@@ -92,11 +92,9 @@ class _LoginFormState extends State<LoginForm> {
         MaterialPageRoute(builder: (context) => HomePage()),
         (route) => false,
       );
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.code)));
+      StandardData.normalSnackbar(context, e.toString());
     }
   }
 

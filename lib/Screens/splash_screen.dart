@@ -67,7 +67,14 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset("assets/logo.png", width: 120),
+              Container(
+                decoration: BoxDecoration(shape: BoxShape.circle),
+                child: Image.asset(
+                  "assets/logo_nobg.png",
+                  width: 120,
+                  fit: BoxFit.contain,
+                ),
+              ),
               SizedBox(height: 20),
               Text(
                 "Arise",

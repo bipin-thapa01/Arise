@@ -12,7 +12,6 @@ import 'package:fitness/Screens/HomePage/home_page_workout.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/Screens/More/more.dart';
 import 'package:fitness/Screens/Progress/calendar.dart';
-import 'package:fitness/Screens/Settings/settings.dart' as st;
 import 'package:fitness/Screens/Workout/workout.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fitness/Screens/splash_screen.dart';
+import 'package:fitness/connectivity_gate.dart';
+import 'package:fitness/connectivity_service.dart';
 import 'package:fitness/notification_service.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -23,9 +26,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initOpenFoodFacts();
   await Firebase.initializeApp();
-  await FirebaseNotification().initFCM();
   await initializeDateFormatting();
-  // await NotificationService.instance.initNotification();
+  ConnectivityService.instance.startMonitoring();
   runApp(MyApp());
 }
 
@@ -46,6 +48,11 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _fetch();
+    ConnectivityService.instance.onStatusChange.listen((isConnected) {
+      if (isConnected) {
+        FirebaseNotification().initFCM();
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkAppVersion(context);
     });
@@ -90,7 +97,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: ConnectivityGate(child: SplashScreen()),
     );
   }
 }

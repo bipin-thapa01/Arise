@@ -14,6 +14,26 @@ class HomePageCalorie extends StatefulWidget {
 
 class _HomePageCalorieState extends State<HomePageCalorie> {
   DateTime now = DateTime.now();
+  double calorieLimit = 2000;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final id = user.uid;
+    final userDoc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(id)
+        .get();
+    setState(() {
+      calorieLimit = double.parse(userDoc.data()!["calorieLimit"]);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +61,7 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
           water = double.tryParse(todayDoc['water'].toString()) ?? 0;
         }
 
-        double percentRatio = (consumed - burned) / 2000;
+        double percentRatio = (consumed - burned) / calorieLimit;
         percentRatio = (percentRatio * 100).round() / 100;
 
         Color progressColor = StandardData.primaryColor;
@@ -64,7 +84,11 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
             "Drank",
             water.toString(),
           ],
-          [Icon(Icons.flag, color: Colors.green), "Daily Goal", "2000"],
+          [
+            Icon(Icons.flag, color: Colors.green),
+            "Daily Goal",
+            calorieLimit.toString(),
+          ],
         ];
 
         return Padding(

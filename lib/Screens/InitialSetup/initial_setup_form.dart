@@ -4,25 +4,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness/Screens/HomePage/home_page.dart';
 import 'package:fitness/standardData.dart';
-import 'package:fitness/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 List<Map<String, dynamic>> requiredFields = [
-  {'name': 'Age', 'type': 'Input', 'unit': 'years'},
+  {'name': 'Age', 'type': 'Input', 'unit': 'years', 'subtype': 'number'},
   {
     'name': 'Gender',
     'type': 'Option',
     'options': ['Male', 'Female'],
+    'subtype': 'string',
   },
-  {'name': 'Height', 'type': 'Input', 'unit': 'cm'},
-  {'name': 'Weight', 'type': 'Input', 'unit': 'kg'},
-  {'name': 'Target Weight', 'type': 'Input', 'unit': 'kg'},
+  {'name': 'Height', 'type': 'Input', 'unit': 'cm', 'subtype': 'number'},
+  {'name': 'Weight', 'type': 'Input', 'unit': 'kg', 'subtype': 'number'},
+  {'name': 'Target Weight', 'type': 'Input', 'unit': 'kg', 'subtype': 'number'},
   {
     'name': 'Target Body Type',
     'type': 'Option',
-    'options': ['Slim', 'Normal', 'Athletic', 'Bulky'],
+    'options': ['Lean', 'Normal', 'Muscular', 'Bulky'],
+    'subtype': 'string',
   },
 ];
 final storage = FlutterSecureStorage();
@@ -60,6 +60,38 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
     super.dispose();
   }
 
+  double calculateCalories({
+    required double weight,
+    required double height,
+    required int age,
+    required String gender,
+    required String targetBody,
+  }) {
+    double bmr;
+    if (gender == 'Male') {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    } else {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    }
+
+    switch (targetBody) {
+      case 'Lean':
+        return (bmr * 1.2) - 300;
+
+      case 'Normal':
+        return bmr * 1.4;
+
+      case 'Muscular':
+        return (bmr * 1.6) + 200;
+
+      case 'Bulky':
+        return (bmr * 1.8) + 400;
+
+      default:
+        return bmr * 1.4;
+    }
+  }
+
   Future<void> submitData() async {
     if (_key.currentState!.validate()) {
       String age = _controllers['Age']!.text;
@@ -68,6 +100,13 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
       String weight = _controllers['Weight']!.text;
       String targetWeight = _controllers['Target Weight']!.text;
       String? targetBodyType = _selectedOptions['Target Body Type'];
+      double calorieLimit = calculateCalories(
+        weight: double.parse(targetWeight),
+        height: double.parse(height),
+        age: int.parse(age),
+        gender: gender!,
+        targetBody: targetBodyType!,
+      );
 
       if (!mounted) return;
       showDialog(
@@ -79,17 +118,6 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
 
       final id = FirebaseAuth.instance.currentUser?.uid;
 
-      if (gender == null || targetBodyType == null) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Select both gender and body type!"),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
       try {
         await FirebaseFirestore.instance.collection("users").doc(id).update({
           'alreadySetup': true,
@@ -99,6 +127,7 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
           'weight': weight,
           'goalWeight': targetWeight,
           'targetBody': targetBodyType,
+          'calorieLimit': calorieLimit.toStringAsFixed(0),
         });
 
         Navigator.pop(context);
@@ -134,6 +163,9 @@ class _InitialSetupFormState extends State<InitialSetupForm> {
                     }
                     return null;
                   },
+                  keyboardType: item['subtype'] == 'number'
+                      ? TextInputType.number
+                      : TextInputType.text,
                   controller: _controllers[item['name']],
                   decoration: InputDecoration(
                     filled: true,
