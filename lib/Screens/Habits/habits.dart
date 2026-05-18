@@ -336,7 +336,7 @@ class _HabitsState extends State<Habits> {
                                               color: index % 2 == 0
                                                   ? StandardData.primaryColor
                                                   : StandardData.amberColor,
-                                              fontSize: 12,
+                                              fontSize: 12 ,
                                             ),
                                           ),
                                         ),

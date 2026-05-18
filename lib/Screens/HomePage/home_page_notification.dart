@@ -72,15 +72,10 @@ class _HomePageNotificationState extends State<HomePageNotification> {
 
         final workouts = activeWorkoutPlan["workouts"];
 
-        print(workouts);
-        print(today);
-
         final todayWorkouts = workouts.firstWhere(
           (workout) => workout["dayName"] == today,
           orElse: () => {},
         );
-
-        print(todayWorkouts);
 
         return Container(
           margin: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),

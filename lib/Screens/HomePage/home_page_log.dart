@@ -1,4 +1,5 @@
 import 'package:fitness/Screens/AddFood/add_food.dart';
+import 'package:fitness/Screens/FoodLog/daily_food_details.dart';
 import 'package:fitness/Screens/FoodLog/food_log.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';

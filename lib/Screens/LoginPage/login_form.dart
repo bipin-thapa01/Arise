@@ -70,7 +70,6 @@ class _LoginFormState extends State<LoginForm> {
       await storage.write(key: "email", value: email);
 
       final id = FirebaseAuth.instance.currentUser?.uid;
-      print(id);
 
       final userDoc = await FirebaseFirestore.instance
           .collection("users")

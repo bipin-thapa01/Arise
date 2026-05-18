@@ -92,7 +92,6 @@ class _FoodBarcodeState extends State<FoodBarcode> {
 
       if (!mounted) return;
 
-      print(productDetails);
       Navigator.push(
         context,
         MaterialPageRoute(

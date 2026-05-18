@@ -257,7 +257,6 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
             ? List.from(dailyDetails["completedTask"])
             : [];
       });
-      print(completedTasksList);
     } catch (e) {
       StandardData.normalSnackbar(context, e.toString());
     }

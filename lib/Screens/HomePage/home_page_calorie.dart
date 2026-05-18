@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/FoodLog/daily_food_details.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -93,113 +94,122 @@ class _HomePageCalorieState extends State<HomePageCalorie> {
 
         return Padding(
           padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: StandardData.backgroundColor1,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: StandardData.borderStrong,
-                    width: 1,
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DailyFoodDetails()),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: StandardData.backgroundColor1,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: StandardData.borderStrong,
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Net Calories",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            CircularPercentIndicator(
-                              radius: 55,
-                              lineWidth: 8,
-                              percent: percentRatio,
-                              circularStrokeCap: CircularStrokeCap.round,
-                              backgroundColor: StandardData.mainColor,
-                              progressColor: progressColor,
-                              animation: true,
-                              animationDuration: 2000,
-                              center: RichText(
-                                textAlign: TextAlign.center,
-                                text: TextSpan(
-                                  text:
-                                      "${(percentRatio * 100).toStringAsFixed(0)}%\n",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
-                                  ),
-                                  children: const [
-                                    TextSpan(
-                                      text: "done",
-                                      style: TextStyle(fontSize: 10),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        flex: 3,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 15),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: details.map((item) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 5,
+                            children: [
+                              const Text(
+                                "Net Calories",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18,
                                 ),
-                                child: Row(
-                                  children: [
-                                    item[0],
-                                    const SizedBox(width: 5),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item[1],
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${item[2].split(".")[0]} ${item[1] == 'Drank' ? 'ml' : 'kcal'}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
+                              ),
+                              const SizedBox(height: 10),
+                              CircularPercentIndicator(
+                                startAngle: 270,
+                                radius: 55,
+                                lineWidth: 8,
+                                percent: percentRatio,
+                                circularStrokeCap: CircularStrokeCap.round,
+                                backgroundColor: StandardData.mainColor,
+                                progressColor: progressColor,
+                                animation: true,
+                                animationDuration: 2000,
+                                center: RichText(
+                                  textAlign: TextAlign.center,
+                                  text: TextSpan(
+                                    text:
+                                        "${(percentRatio * 100).toStringAsFixed(0)}%\n",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
                                     ),
-                                  ],
+                                    children: const [
+                                      TextSpan(
+                                        text: "done",
+                                        style: TextStyle(fontSize: 10),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 20),
+                        Expanded(
+                          flex: 3,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 15),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: details.map((item) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 5,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      item[0],
+                                      const SizedBox(width: 5),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item[1],
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${item[2].split(".")[0]} ${item[1] == 'Drank' ? 'ml' : 'kcal'}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
