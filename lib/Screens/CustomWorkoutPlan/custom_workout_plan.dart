@@ -146,7 +146,6 @@ class _CustomWorkoutPlanState extends State<CustomWorkoutPlan> {
                                 isDaysDecided = true;
                                 numberOfDays = int.parse(value);
                                 initCustomWorkouts(numberOfDays);
-                                print(customWorkouts);
                               }
                             });
                           },
