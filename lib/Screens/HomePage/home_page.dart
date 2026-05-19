@@ -187,26 +187,38 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       floatingActionButton: keyboardOpen
           ? null
-          : IconButton(
-              iconSize: 30,
-              onPressed: () {
-                showModalBottomSheet(
-                  isScrollControlled: true,
-                  context: context,
-                  builder: (context) {
-                    return DraggableScrollableSheet(
-                      initialChildSize: 0.35,
-                      expand: false,
-                      builder: (context, scrollController) {
-                        return HomePageQRPopup();
-                      },
-                    );
-                  },
-                );
-              },
-              icon: Icon(Icons.qr_code_scanner),
-              style: IconButton.styleFrom(
-                backgroundColor: StandardData.primaryColor,
+          : Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: StandardData.primaryColor.withAlpha(200),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: IconButton(
+                iconSize: 30,
+                onPressed: () {
+                  showModalBottomSheet(
+                    isScrollControlled: true,
+                    context: context,
+                    builder: (context) {
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.35,
+                        expand: false,
+                        builder: (context, scrollController) {
+                          return HomePageQRPopup();
+                        },
+                      );
+                    },
+                  );
+                },
+                icon: Icon(Icons.qr_code_scanner),
+                style: IconButton.styleFrom(
+                  backgroundColor: StandardData.primaryColor,
+                ),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
