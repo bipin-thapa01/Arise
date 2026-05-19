@@ -22,6 +22,7 @@ class _DailyFoodDetailsState extends State<DailyFoodDetails> {
   double percentage = 0;
   List<Map<String, dynamic>> foodLog = [];
   bool isFetching = true;
+  Map<String, bool> isCheckedMap = {};
 
   @override
   void initState() {
@@ -56,20 +57,80 @@ class _DailyFoodDetailsState extends State<DailyFoodDetails> {
         calorieRemaining = calorieLimit - calorieConsumed;
         waterConsumed = dailyDetail.data()?["water"] ?? 0;
         percentage = calorieConsumed / calorieLimit;
-        foodLog = todayFoodLogDoc.docs
-            .map(
-              (doc) => {
-                "name": doc.data()["name"],
-                "brandName": doc.data()["brandName"],
-                "calorieConsumed": doc.data()["calorieConsumed"],
-                "quantity": doc.data()["quantity"],
-                "unit": doc.data()["unit"],
-                "id": doc.id,
-              },
-            )
-            .toList();
+        foodLog = todayFoodLogDoc.docs.map((doc) {
+          isCheckedMap[doc.id] = false;
+          return {
+            "name": doc.data()["name"],
+            "brandName": doc.data()["brandName"],
+            "calorieConsumed": doc.data()["calorieConsumed"],
+            "quantity": doc.data()["quantity"],
+            "unit": doc.data()["unit"],
+            "id": doc.id,
+          };
+        }).toList();
         isFetching = false;
       });
+    } catch (e) {
+      StandardData.normalSnackbar(context, e.toString());
+    }
+  }
+
+  Future<void> removeFoodLog() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    String todayDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
+
+    final idsToRemove = isCheckedMap.entries
+        .where((entry) => entry.value == true)
+        .map((entry) => entry.key)
+        .toList();
+
+    try {
+      for (final id in idsToRemove) {
+        final calorieToSubtract = foodLog.firstWhere(
+          (map) => map["id"] == id,
+          orElse: () => {},
+        );
+
+        final foodLogDoc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(uid)
+            .collection("foodLog")
+            .doc(calorieToSubtract["id"])
+            .get();
+
+        final dailyDetailsRef = FirebaseFirestore.instance
+            .collection("users")
+            .doc(uid)
+            .collection("dailyDetails")
+            .doc(todayDate);
+
+        await dailyDetailsRef.update({
+          "consumed": FieldValue.increment(
+            -calorieToSubtract["calorieConsumed"],
+          ),
+        });
+
+        if (foodLogDoc.data()!["unit"].toLowerCase() == "ml" ||
+            foodLogDoc.data()!["unit"] == "l") {
+          await dailyDetailsRef.update({
+            "water": FieldValue.increment(-foodLogDoc.data()!["quantity"]),
+          });
+        }
+        await foodLogDoc.reference.delete();
+
+        final dailyDetails = await dailyDetailsRef.get();
+
+        setState(() {
+          foodLog.removeWhere((element) => element["id"] == id);
+          isCheckedMap.remove(id);
+          calorieConsumed = dailyDetails.data()!["consumed"];
+          calorieRemaining = calorieLimit - calorieConsumed;
+          percentage = calorieConsumed / calorieLimit;
+          waterConsumed = dailyDetails.data()?["water"] ?? 0;
+        });
+        StandardData.normalSnackbar(context, "Food Log Deleted Successfully");
+      }
     } catch (e) {
       StandardData.normalSnackbar(context, e.toString());
     }
@@ -138,109 +199,164 @@ class _DailyFoodDetailsState extends State<DailyFoodDetails> {
                     ],
                   ),
                   SizedBox(height: 10),
-                  Expanded(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: foodLog.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 10),
-                          child: Row(
-                            children: [
-                              Text(
-                                "${foodLog[index]["id"].split(" ")[1].split(".")[0]}",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              SizedBox(width: 5),
-                              Expanded(
-                                child: Container(
-                                  padding: EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: StandardData.backgroundColor1,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      width: 1,
-                                      color: StandardData.borderStrong,
+                  foodLog.length == 0
+                      ? Center(
+                          child: Text(
+                            "Empty Food Log",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : Expanded(
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: foodLog.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                margin: EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      "${foodLog[index]["id"].split(" ")[1].split(".")[0]}",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(5),
+                                    SizedBox(width: 5),
+                                    Expanded(
+                                      child: Container(
+                                        padding: EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: index % 2 == 0
-                                              ? StandardData.purpleTint
-                                              : StandardData.amberTint,
+                                          color: StandardData.backgroundColor1,
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
                                           border: Border.all(
                                             width: 1,
-                                            color: index % 2 == 0
-                                                ? StandardData.primaryColor
-                                                : StandardData.amberColor,
+                                            color: StandardData.borderStrong,
                                           ),
                                         ),
-                                        child:
-                                            foodLog[index]["unit"]
-                                                        .toLowerCase() !=
-                                                    "ml" &&
-                                                foodLog[index]["unit"] != "l"
-                                            ? Icon(
-                                                Icons.fastfood,
-                                                color: index % 2 == 0
-                                                    ? StandardData.primaryColor
-                                                    : StandardData.amberColor,
-                                              )
-                                            : Icon(
-                                                Icons.water_drop,
-                                                color: index % 2 == 0
-                                                    ? StandardData.primaryColor
-                                                    : StandardData.amberColor,
-                                              ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                        child: Row(
                                           children: [
-                                            Text(
-                                              foodLog[index]['name'],
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                            Checkbox(
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              value:
+                                                  isCheckedMap[foodLog[index]["id"]],
+                                              onChanged: (bool? value) {
+                                                setState(() {
+                                                  isCheckedMap[foodLog[index]["id"]] =
+                                                      value ?? false;
+                                                });
+                                              },
+                                            ),
+                                            Container(
+                                              padding: EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                color: index % 2 == 0
+                                                    ? StandardData.purpleTint
+                                                    : StandardData.amberTint,
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  width: 1,
+                                                  color: index % 2 == 0
+                                                      ? StandardData
+                                                            .primaryColor
+                                                      : StandardData.amberColor,
+                                                ),
+                                              ),
+                                              child:
+                                                  foodLog[index]["unit"]
+                                                              .toLowerCase() !=
+                                                          "ml" &&
+                                                      foodLog[index]["unit"] !=
+                                                          "l"
+                                                  ? Icon(
+                                                      Icons.fastfood,
+                                                      color: index % 2 == 0
+                                                          ? StandardData
+                                                                .primaryColor
+                                                          : StandardData
+                                                                .amberColor,
+                                                    )
+                                                  : Icon(
+                                                      Icons.water_drop,
+                                                      color: index % 2 == 0
+                                                          ? StandardData
+                                                                .primaryColor
+                                                          : StandardData
+                                                                .amberColor,
+                                                    ),
+                                            ),
+                                            SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    foodLog[index]['name'],
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    "${foodLog[index]['quantity']} ${foodLog[index]['unit']}",
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                             Text(
-                                              "${foodLog[index]['quantity']} ${foodLog[index]['unit']}",
+                                              "${foodLog[index]["calorieConsumed"].ceil()} kcal",
                                               style: TextStyle(
-                                                color: Colors.grey,
+                                                color: StandardData.tealColor,
                                                 fontSize: 12,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      Text(
-                                        "${foodLog[index]["calorieConsumed"].ceil()} kcal",
-                                        style: TextStyle(
-                                          color: StandardData.tealColor,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                  SizedBox(height: 10),
+                  isCheckedMap.containsValue(true)
+                      ? GestureDetector(
+                          onTap: () {
+                            removeFoodLog();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: StandardData.backgroundColor2,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                width: 1,
+                                color: StandardData.borderStrong,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.delete),
+                                SizedBox(width: 5),
+                                Text("Delete"),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Container(),
                 ],
               ),
             ),
@@ -248,7 +364,7 @@ class _DailyFoodDetailsState extends State<DailyFoodDetails> {
   }
 }
 
-class TopData extends StatefulWidget {
+class TopData extends StatelessWidget {
   final double percentage;
   final double calorieConsumed;
   final double calorieLimit;
@@ -263,11 +379,6 @@ class TopData extends StatefulWidget {
     required this.waterConsumed,
   });
 
-  @override
-  State<TopData> createState() => _TopDataState();
-}
-
-class _TopDataState extends State<TopData> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -286,7 +397,7 @@ class _TopDataState extends State<TopData> {
               children: [
                 CircularPercentIndicator(
                   radius: 35,
-                  percent: widget.percentage,
+                  percent: percentage.clamp(0, 1.0),
                   progressColor: StandardData.primaryColor,
                   startAngle: 270,
                   lineWidth: 6,
@@ -300,7 +411,7 @@ class _TopDataState extends State<TopData> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "${(widget.percentage * 100).ceilToDouble()}%",
+                        "${(percentage * 100).ceilToDouble()}%",
                         style: TextStyle(fontSize: 12),
                       ),
                       Text(
@@ -322,13 +433,13 @@ class _TopDataState extends State<TopData> {
                   "Consumed",
                   style: TextStyle(color: Colors.grey, fontSize: 10),
                 ),
-                Text("${widget.calorieConsumed.ceil()} kcal"),
+                Text("${calorieConsumed.ceil()} kcal"),
                 SizedBox(height: 10),
                 Text(
                   "Daily Goal",
                   style: TextStyle(color: Colors.grey, fontSize: 10),
                 ),
-                Text("${widget.calorieLimit.ceil()} kcal"),
+                Text("${calorieLimit.ceil()} kcal"),
               ],
             ),
           ),
@@ -341,7 +452,7 @@ class _TopDataState extends State<TopData> {
                   style: TextStyle(color: Colors.grey, fontSize: 10),
                 ),
                 Text(
-                  "${widget.calorieRemaining.ceil()} kcal",
+                  "${calorieRemaining.ceil()} kcal",
                   style: TextStyle(color: StandardData.tealColor),
                 ),
                 SizedBox(height: 10),
@@ -349,7 +460,7 @@ class _TopDataState extends State<TopData> {
                   "Hydration",
                   style: TextStyle(color: Colors.grey, fontSize: 10),
                 ),
-                Text("${widget.waterConsumed.ceil()} ml"),
+                Text("${waterConsumed.ceil()} ml"),
               ],
             ),
           ),
