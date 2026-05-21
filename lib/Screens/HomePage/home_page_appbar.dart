@@ -1,3 +1,4 @@
+import 'package:fitness/Screens/Account/account.dart';
 import 'package:flutter/material.dart';
 import 'package:fitness/standardData.dart';
 
@@ -36,14 +37,22 @@ class _HomePageAppbarState extends State<HomePageAppbar> {
       title: Row(
         spacing: 10,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(50),
-              image: DecorationImage(
-                image: AssetImage('assets/user.png'),
-                fit: BoxFit.cover,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Account()),
+              );
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(50),
+                image: DecorationImage(
+                  image: AssetImage('assets/user.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
