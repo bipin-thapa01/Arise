@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/Account/account.dart';
 import 'package:fitness/Screens/LoginPage/login_page.dart';
 import 'package:fitness/standardData.dart';
 import 'package:flutter/material.dart';
@@ -36,17 +37,17 @@ class _MoreState extends State<More> {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  StandardData.normalSnackbar(
+                  Navigator.push(
                     context,
-                    "feature not added yet!",
+                    MaterialPageRoute(builder: (context) => Account()),
                   );
                 },
                 child: Row(
                   children: [
-                    Icon(Icons.settings),
+                    Icon(Icons.account_circle),
                     SizedBox(width: 10),
                     Text(
-                      "Settings",
+                      "Account",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
