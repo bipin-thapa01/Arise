@@ -189,7 +189,7 @@ class _FoodBarcodeState extends State<FoodBarcode> {
           Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 25, left: 10, right: 10),
+                padding: const EdgeInsets.only(top: 40, left: 10, right: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -197,11 +197,7 @@ class _FoodBarcodeState extends State<FoodBarcode> {
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      icon: Icon(Icons.arrow_back),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                      ),
+                      icon: Icon(Icons.arrow_back_ios_new),
                     ),
                     IconButton(onPressed: () {}, icon: Icon(Icons.flash_off)),
                   ],
