@@ -31,7 +31,7 @@ class _MoreState extends State<More> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: Image.asset("assets/logo_nobg.png", width: 140)),
-            Divider(),
+            Divider(color: StandardData.borderStrong),
             Padding(
               padding: const EdgeInsets.only(left: 10),
               child: GestureDetector(

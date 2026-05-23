@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitness/Screens/AddFood/add_food.dart';
 import 'package:fitness/Screens/FoodBarcode/food_barcode.dart';
 import 'package:fitness/Screens/FoodSearch/food_search.dart';
 import 'package:fitness/Screens/HomePage/home_page_appbar.dart';
@@ -326,7 +327,10 @@ class _HomePageQRPopupState extends State<HomePageQRPopup> {
           StandardData.normalSnackbar(context, "feature not added yet");
         },
         'onTap2': () {
-          StandardData.normalSnackbar(context, "feature not added yet");
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddFood()),
+          );
         },
       },
     ];
