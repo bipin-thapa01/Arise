@@ -12,6 +12,9 @@ class FoodBarcode extends StatefulWidget {
 }
 
 class _FoodBarcodeState extends State<FoodBarcode> {
+  late final MobileScannerController controller;
+  bool isTorchOn = false;
+  bool isLoading = false;
   String? lastBarcode;
   Map<String, dynamic> productDetails = {};
 
@@ -34,8 +37,29 @@ class _FoodBarcodeState extends State<FoodBarcode> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    Future<void> getProduct(String barcode) async {
+  void initState() {
+    super.initState();
+    controller = MobileScannerController(torchEnabled: false);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  String _clean(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? 'Unknown' : trimmed;
+  }
+
+  Future<void> getProduct(String barcode) async {
+    if (isLoading) return;
+    setState(() {
+      isLoading = true;
+    });
+    controller.stop();
+    try {
       final ProductQueryConfiguration config = ProductQueryConfiguration(
         barcode,
         version: ProductQueryVersion.v3,
@@ -47,63 +71,80 @@ class _FoodBarcodeState extends State<FoodBarcode> {
         config,
       );
 
+      if (!mounted) return;
+
       if (result.status == ProductResultV3.statusFailure) {
-        setState(() {
-          productDetails = {};
-          productDetails['status'] = 'Product not found!';
-        });
+        productDetails = {'status': 'Product not found!'};
       } else {
-        setState(() {
-          productDetails['status'] = 'Product found!';
-          productDetails['name'] = result.product?.productName ?? 'Unknown';
-          productDetails['brand'] = result.product?.brands ?? 'Unknown';
-          productDetails['category'] = result.product?.categories ?? 'Unknown';
-          productDetails['image'] = result.product?.imageFrontUrl ?? 'Unknown';
-          productDetails['serving_size'] =
-              result.product?.servingSize ?? 'null';
-          productDetails['serving_quantity'] =
-              result.product?.servingQuantity ?? 'null';
-          productDetails['protein'] =
+        productDetails = {
+          'status': 'Product found!',
+          'name': _clean(result.product?.productName),
+          'brand': _clean(result.product?.brands),
+          'category': _clean(result.product?.categories),
+          'image': _clean(result.product?.imageFrontUrl),
+          'quantity': _clean(result.product?.quantity),
+          'serving_size': _clean(result.product?.servingSize),
+          'serving_quantity': result.product?.servingQuantity ?? 'null',
+          'protein':
               result.product?.nutriments?.getValue(
                 Nutrient.proteins,
                 PerSize.oneHundredGrams,
               ) ??
-              'null';
-          productDetails['carbs'] =
+              'null',
+          'carbs':
               result.product?.nutriments?.getValue(
                 Nutrient.carbohydrates,
                 PerSize.oneHundredGrams,
               ) ??
-              'null';
-          productDetails['fat'] =
+              'null',
+          'fat':
               result.product?.nutriments?.getValue(
                 Nutrient.fat,
                 PerSize.oneHundredGrams,
               ) ??
-              'null';
-          productDetails['sugar'] =
+              'null',
+          'sugar':
               result.product?.nutriments?.getValue(
                 Nutrient.sugars,
                 PerSize.oneHundredGrams,
               ) ??
-              'null';
-        });
+              'null',
+          'calories':
+              result.product?.nutriments?.getValue(
+                Nutrient.energyKCal,
+                PerSize.oneHundredGrams,
+              ) ??
+              null,
+          'caloriesServingSize':
+              result.product?.nutriments?.getValue(
+                Nutrient.energyKCal,
+                PerSize.serving,
+              ) ??
+              null,
+        };
       }
 
       if (!mounted) return;
 
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => FoodData(product: productDetails),
         ),
-      ).then((_) {
+      );
+    } finally {
+      if (mounted) {
+        controller.start();
         setState(() {
+          isLoading = false;
           lastBarcode = null;
         });
-      });
+      }
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final scanWidth = size.width * 0.8;
     final scanHeight = 300.0;
@@ -119,6 +160,7 @@ class _FoodBarcodeState extends State<FoodBarcode> {
       body: Stack(
         children: [
           MobileScanner(
+            controller: controller,
             scanWindow: Rect.fromCenter(
               center: Offset(size.width / 2, size.height / 2),
               width: size.width * 0.8,
@@ -127,7 +169,7 @@ class _FoodBarcodeState extends State<FoodBarcode> {
             onDetect: (BarcodeCapture capture) {
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                if (lastBarcode == barcodes.first.rawValue) {
+                if (isLoading || lastBarcode == barcodes.first.rawValue) {
                   return;
                 }
                 lastBarcode = barcodes.first.rawValue;
@@ -199,7 +241,15 @@ class _FoodBarcodeState extends State<FoodBarcode> {
                       },
                       icon: Icon(Icons.arrow_back_ios_new),
                     ),
-                    IconButton(onPressed: () {}, icon: Icon(Icons.flash_off)),
+                    IconButton(
+                      onPressed: () {
+                        controller.toggleTorch();
+                        setState(() {
+                          isTorchOn = !isTorchOn;
+                        });
+                      },
+                      icon: Icon(!isTorchOn ? Icons.flash_off : Icons.flash_on),
+                    ),
                   ],
                 ),
               ),
