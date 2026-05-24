@@ -342,9 +342,9 @@ class _HomePageQRPopupState extends State<HomePageQRPopup> {
           Center(
             child: Container(
               width: 35,
-              height: 6,
+              height: 5,
               decoration: BoxDecoration(
-                color: StandardData.primaryColor,
+                color: Colors.grey,
                 borderRadius: BorderRadius.circular(20),
               ),
             ),

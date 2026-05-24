@@ -1,4 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fitness/standardData.dart';
+import 'package:intl/intl.dart';
 
 class FoodData extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -17,6 +21,7 @@ class _FoodDataState extends State<FoodData> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    print(product);
 
     return Scaffold(
       body: CustomScrollView(
@@ -26,7 +31,7 @@ class _FoodDataState extends State<FoodData> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              icon: Icon(Icons.arrow_back_ios_new, color: Colors.black),
+              icon: Icon(Icons.arrow_back_ios_new),
             ),
             expandedHeight: 300,
             pinned: true,
@@ -49,7 +54,7 @@ class _FoodDataState extends State<FoodData> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product['brand'] ?? 'Unknown Brand',
+                    product['name'] ?? 'Unknown Name',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -57,7 +62,7 @@ class _FoodDataState extends State<FoodData> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    product['category'] ?? '',
+                    product['brand'] ?? 'Unknown Brand',
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
 
@@ -66,7 +71,7 @@ class _FoodDataState extends State<FoodData> {
                     'Nutrition Facts',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const Divider(),
+                  const Divider(color: StandardData.borderStrong),
 
                   Row(
                     children: [
@@ -74,28 +79,46 @@ class _FoodDataState extends State<FoodData> {
                         label: 'Protein',
                         value: _formatNutrient(product['protein']),
                         unit: 'g',
-                        color: Colors.blue,
+                        color: StandardData.primaryColor,
                       ),
                       const SizedBox(width: 12),
                       _NutritionCard(
                         label: 'Carbs',
                         value: _formatNutrient(product['carbs']),
                         unit: 'g',
-                        color: Colors.orange,
+                        color: StandardData.amberColor,
                       ),
                       const SizedBox(width: 12),
                       _NutritionCard(
                         label: 'Fat',
                         value: _formatNutrient(product['fat']),
                         unit: 'g',
-                        color: Colors.red,
+                        color: StandardData.tealColor,
                       ),
                       const SizedBox(width: 12),
                       _NutritionCard(
                         label: 'Sugar',
                         value: _formatNutrient(product['sugar']),
                         unit: 'g',
-                        color: Colors.purple,
+                        color: Colors.blue,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _NutritionCard(
+                        label: 'Calorie/100g',
+                        value: _formatNutrient(product['calories']),
+                        unit: ' kcal',
+                        color: Colors.lightGreen,
+                      ),
+                      const SizedBox(width: 12),
+                      _NutritionCard(
+                        label: 'Calorie/Serving',
+                        value: _formatNutrient(product['caloriesServingSize']),
+                        unit: ' kcal',
+                        color: Colors.red,
                       ),
                     ],
                   ),
@@ -106,12 +129,241 @@ class _FoodDataState extends State<FoodData> {
                     'Serving Info',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const Divider(),
+                  const Divider(color: StandardData.borderStrong),
                   _InfoRow('Serving Size', product['serving_size']),
                   _InfoRow('Serving Quantity', product['serving_quantity']),
+                  _InfoRow('Packet Quantity', product['quantity']),
+
+                  SizedBox(height: 24),
+
+                  (product['name'] == null || product['name'] == 'Unknown') ||
+                          (product['brand'] == null ||
+                              product['brand'] == 'Unknown')
+                      ? Container()
+                      : GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              isScrollControlled: true,
+                              context: context,
+                              builder: (context) =>
+                                  FoodLogFromBarcode(product: product),
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: StandardData.purpleTint,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                width: 1,
+                                color: StandardData.primaryColor,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Log Food",
+                                style: TextStyle(
+                                  color: StandardData.primaryColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FoodLogFromBarcode extends StatefulWidget {
+  final Map<String, dynamic> product;
+  const FoodLogFromBarcode({super.key, required this.product});
+
+  @override
+  State<FoodLogFromBarcode> createState() => _FoodLogFromBarcodeState();
+}
+
+class _FoodLogFromBarcodeState extends State<FoodLogFromBarcode> {
+  final quantityController = TextEditingController();
+  String unit = '';
+  List<String> validUnit = ['l', 'ml', 'g', 'kg'];
+
+  @override
+  void initState() {
+    super.initState();
+    unit = widget.product['quantity'] != 'Unknown'
+        ? widget.product['quantity'].toString().split(" ")[1]
+        : widget.product['serving_size'] != 'Unknown'
+        ? widget.product['serving_size'].toString().split(" ")[1]
+        : 'g';
+  }
+
+  String _formatNutrient(dynamic value) {
+    final parsed = double.tryParse(value.toString());
+    return parsed != null ? parsed.toStringAsFixed(1) : '0';
+  }
+
+  Future<void> logFood() async {
+    double consumedQuantity = double.tryParse(quantityController.text) ?? 0;
+    if (consumedQuantity <= 0) {
+      Navigator.pop(context);
+      StandardData.normalSnackbar(context, "Please enter a valid quantity!");
+      return;
+    }
+    double? caloriePerHundredGram = widget.product['calories'];
+    double? caloriePerServing = widget.product['caloriesServingSize'];
+    double servingQuantity = widget.product['serving_quantity'] ?? 100;
+    String quantity = widget.product['quantity'];
+    double? calorieConsumed = 0;
+
+    if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'l') {
+      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
+          ? caloriePerHundredGram / 100 * consumedQuantity * 1000
+          : caloriePerServing != null
+          ? caloriePerServing / servingQuantity * consumedQuantity * 1000
+          : null;
+    } else if (!validUnit.contains(unit.toLowerCase())) {
+      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
+          ? caloriePerHundredGram
+          : caloriePerServing != null
+          ? caloriePerServing * consumedQuantity
+          : null;
+    } else {
+      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
+          ? caloriePerHundredGram / 100 * consumedQuantity
+          : caloriePerServing != null
+          ? caloriePerServing / servingQuantity * consumedQuantity
+          : null;
+    }
+    if (calorieConsumed == null) {
+      StandardData.normalSnackbar(
+        context,
+        "The fetched food has incorrect data format!",
+      );
+    } else {
+      try {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("foodLog")
+            .doc(DateTime.now().toIso8601String())
+            .set({
+              'brandName': widget.product['brand'],
+              'name': widget.product['name'],
+              'quantity': consumedQuantity,
+              'unit': unit,
+              'calorieConsumed': calorieConsumed,
+            });
+        Navigator.pop(context);
+        StandardData.normalSnackbar(context, "Food Logged successfully!");
+      } catch (e) {
+        StandardData.normalSnackbar(context, e.toString());
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 10,
+        right: 10,
+        top: 10,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 30,
+              height: 5,
+              decoration: BoxDecoration(
+                color: StandardData.borderStrong,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Center(
+            child: Text(
+              widget.product["name"] ?? "Unknown",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "Nutrition Facts",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              _NutritionCard(
+                label: 'Calorie/100g',
+                value: _formatNutrient(widget.product['calories']),
+                unit: ' kcal',
+                color: StandardData.primaryColor,
+              ),
+              const SizedBox(width: 12),
+              _NutritionCard(
+                label: 'Calorie/Serving',
+                value: _formatNutrient(widget.product['caloriesServingSize']),
+                unit: ' kcal',
+                color: StandardData.amberColor,
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          const Text(
+            'Serving Info',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const Divider(color: StandardData.borderStrong),
+          _InfoRow('Serving Size', widget.product['serving_size']),
+          _InfoRow('Serving Quantity', widget.product['serving_quantity']),
+          _InfoRow('Packet Quantity', widget.product['quantity']),
+          SizedBox(height: 20),
+          TextFormField(
+            controller: quantityController,
+            decoration: InputDecoration(
+              suffix: Text(unit),
+              labelText: "Quantity",
+              filled: true,
+              fillColor: StandardData.backgroundColor1,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () {
+                  logFood();
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: StandardData.primaryColor,
+                ),
+                child: Text("Log Food"),
+              ),
+              SizedBox(width: 20),
+              TextButton(
+                onPressed: () {},
+                style: TextButton.styleFrom(
+                  backgroundColor: StandardData.backgroundColor2,
+                ),
+                child: Text("Cancel"),
+              ),
+            ],
           ),
         ],
       ),
