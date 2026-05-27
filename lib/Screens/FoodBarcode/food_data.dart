@@ -189,18 +189,12 @@ class FoodLogFromBarcode extends StatefulWidget {
 }
 
 class _FoodLogFromBarcodeState extends State<FoodLogFromBarcode> {
+  bool isWater = false;
   final quantityController = TextEditingController();
-  String unit = '';
-  List<String> validUnit = ['l', 'ml', 'g', 'kg'];
 
   @override
   void initState() {
     super.initState();
-    unit = widget.product['quantity'] != 'Unknown'
-        ? widget.product['quantity'].toString().split(" ")[1]
-        : widget.product['serving_size'] != 'Unknown'
-        ? widget.product['serving_size'].toString().split(" ")[1]
-        : 'g';
   }
 
   String _formatNutrient(dynamic value) {
@@ -209,41 +203,21 @@ class _FoodLogFromBarcodeState extends State<FoodLogFromBarcode> {
   }
 
   Future<void> logFood() async {
-    double consumedQuantity = double.tryParse(quantityController.text) ?? 0;
-    if (consumedQuantity <= 0) {
+    double? caloriePerHundredGram = widget.product['calories'];
+
+    if (quantityController.text == "") {
       Navigator.pop(context);
-      StandardData.normalSnackbar(context, "Please enter a valid quantity!");
+      StandardData.normalSnackbar(context, "Field cannot be empty!");
       return;
     }
-    double? caloriePerHundredGram = widget.product['calories'];
-    double? caloriePerServing = widget.product['caloriesServingSize'];
-    double servingQuantity = widget.product['serving_quantity'] ?? 100;
-    String quantity = widget.product['quantity'];
-    double? calorieConsumed = 0;
 
-    if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'l') {
-      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
-          ? caloriePerHundredGram / 100 * consumedQuantity * 1000
-          : caloriePerServing != null
-          ? caloriePerServing / servingQuantity * consumedQuantity * 1000
-          : null;
-    } else if (!validUnit.contains(unit.toLowerCase())) {
-      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
-          ? caloriePerHundredGram
-          : caloriePerServing != null
-          ? caloriePerServing * consumedQuantity
-          : null;
-    } else {
-      calorieConsumed = caloriePerHundredGram != null && quantity != 'Unknown'
-          ? caloriePerHundredGram / 100 * consumedQuantity
-          : caloriePerServing != null
-          ? caloriePerServing / servingQuantity * consumedQuantity
-          : null;
-    }
-    if (calorieConsumed == null) {
+    double consumedQuantity = double.parse(quantityController.text);
+
+    if (caloriePerHundredGram == null || caloriePerHundredGram == 0) {
+      Navigator.pop(context);
       StandardData.normalSnackbar(
         context,
-        "The fetched food has incorrect data format!",
+        "The fetched food has incorrect data format so can\'t be logged!",
       );
     } else {
       try {
@@ -251,13 +225,24 @@ class _FoodLogFromBarcodeState extends State<FoodLogFromBarcode> {
             .collection("users")
             .doc(FirebaseAuth.instance.currentUser!.uid)
             .collection("foodLog")
-            .doc(DateTime.now().toIso8601String())
+            .doc(DateFormat("yyyy-MM-dd HH:mm:ss.SSSS").format(DateTime.now()))
             .set({
               'brandName': widget.product['brand'],
               'name': widget.product['name'],
-              'quantity': consumedQuantity,
-              'unit': unit,
-              'calorieConsumed': calorieConsumed,
+              'quantity': 100.0,
+              'unit': isWater ? 'ml' : 'g',
+              'calorieConsumed': caloriePerHundredGram / 100 * consumedQuantity,
+            });
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("dailyDetails")
+            .doc(DateFormat("yyyy-MM-dd").format(DateTime.now()))
+            .update({
+              "consumed": FieldValue.increment(
+                caloriePerHundredGram / 100 * consumedQuantity,
+              ),
+              if (isWater) "water": FieldValue.increment(consumedQuantity),
             });
         Navigator.pop(context);
         StandardData.normalSnackbar(context, "Food Logged successfully!");
@@ -269,103 +254,151 @@ class _FoodLogFromBarcodeState extends State<FoodLogFromBarcode> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 10,
-        right: 10,
-        top: 10,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: Container(
-              width: 30,
-              height: 5,
+    return SingleChildScrollView(
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 30,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 30,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: StandardData.borderStrong,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: Text(
+                widget.product["name"] ?? "Unknown",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(height: 20),
+            Container(
+              padding: EdgeInsets.all(5),
               decoration: BoxDecoration(
-                color: StandardData.borderStrong,
+                color: Colors.red.withAlpha(100),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(width: 1, color: Colors.red),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Colors.red),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Due to inconsistent data, food can only be logged with respect to Calorie/100g",
+                      softWrap: true,
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          SizedBox(height: 20),
-          Center(
-            child: Text(
-              widget.product["name"] ?? "Unknown",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            SizedBox(height: 20),
+            Text(
+              "Nutrition Facts",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
             ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            "Nutrition Facts",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              _NutritionCard(
-                label: 'Calorie/100g',
-                value: _formatNutrient(widget.product['calories']),
-                unit: ' kcal',
-                color: StandardData.primaryColor,
-              ),
-              const SizedBox(width: 12),
-              _NutritionCard(
-                label: 'Calorie/Serving',
-                value: _formatNutrient(widget.product['caloriesServingSize']),
-                unit: ' kcal',
-                color: StandardData.amberColor,
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          const Text(
-            'Serving Info',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const Divider(color: StandardData.borderStrong),
-          _InfoRow('Serving Size', widget.product['serving_size']),
-          _InfoRow('Serving Quantity', widget.product['serving_quantity']),
-          _InfoRow('Packet Quantity', widget.product['quantity']),
-          SizedBox(height: 20),
-          TextFormField(
-            controller: quantityController,
-            decoration: InputDecoration(
-              suffix: Text(unit),
-              labelText: "Quantity",
-              filled: true,
-              fillColor: StandardData.backgroundColor1,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          SizedBox(height: 20),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () {
-                  logFood();
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: StandardData.primaryColor,
+            SizedBox(height: 10),
+            Row(
+              children: [
+                _NutritionCard(
+                  label: 'Calorie/100g',
+                  value: _formatNutrient(widget.product['calories']),
+                  unit: ' kcal',
+                  color: StandardData.primaryColor,
                 ),
-                child: Text("Log Food"),
-              ),
-              SizedBox(width: 20),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  backgroundColor: StandardData.backgroundColor2,
+                const SizedBox(width: 12),
+                _NutritionCard(
+                  label: 'Calorie/Serving',
+                  value: _formatNutrient(widget.product['caloriesServingSize']),
+                  unit: ' kcal',
+                  color: StandardData.amberColor,
                 ),
-                child: Text("Cancel"),
+              ],
+            ),
+            SizedBox(height: 20),
+            const Text(
+              'Serving Info',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const Divider(color: StandardData.borderStrong),
+            _InfoRow('Serving Size', widget.product['serving_size']),
+            _InfoRow('Serving Quantity', widget.product['serving_quantity']),
+            _InfoRow('Packet Quantity', widget.product['quantity']),
+            SizedBox(height: 20),
+            TextFormField(
+              keyboardType: TextInputType.number,
+              controller: quantityController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: StandardData.backgroundColor1,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                labelText: "Quantity",
+                suffixText: "g/ml",
               ),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              children: [
+                Transform.scale(
+                  scale: 0.8,
+                  child: Checkbox(
+                    visualDensity: VisualDensity.compact,
+                    value: isWater,
+                    onChanged: (value) {
+                      setState(() {
+                        isWater = value ?? false;
+                      });
+                      print(isWater);
+                    },
+                  ),
+                ),
+                Text(
+                  "Mark if the food is liquid.",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 10),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    logFood();
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: StandardData.primaryColor,
+                  ),
+                  child: Text("Log Food"),
+                ),
+                SizedBox(width: 20),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: StandardData.backgroundColor2,
+                  ),
+                  child: Text("Cancel"),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
