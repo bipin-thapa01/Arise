@@ -279,14 +279,36 @@ class _EventsAndTasksWidgetState extends State<EventsAndTasksWidget> {
       return;
     }
     try {
-      await FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .collection("dailyDetails")
           .doc(DateFormat('yyyy-MM-dd').format(widget.selectedDate))
-          .update({
-            "completedTask": FieldValue.arrayUnion([name]),
-          });
+          .get();
+      if (!doc.exists) {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("dailyDetails")
+            .doc(DateFormat('yyyy-MM-dd').format(widget.selectedDate))
+            .set({
+              'consumed': 0,
+              'createdAt': FieldValue.serverTimestamp(),
+              'date': DateFormat('yyyy-MM-dd').format(widget.selectedDate),
+              'completedTask': FieldValue.arrayUnion([name]),
+              'steps': 0,
+              'water': 0,
+            });
+      } else {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection("dailyDetails")
+            .doc(DateFormat('yyyy-MM-dd').format(widget.selectedDate))
+            .update({
+              "completedTask": FieldValue.arrayUnion([name]),
+            });
+      }
       areTaskCompleted();
       StandardData.normalSnackbar(context, "Task has been marked as completed");
       Navigator.pop(context);
